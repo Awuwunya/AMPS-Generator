@@ -157,6 +157,25 @@ dModulate	macro jump,loop,type
 		beq.s	.started		; if not, modulate!
 		subq.b	#1,cModDelay(a1)	; decrease delay
 
+.checkmod
+		if (FEATURE_PORTAMENTO|FEATURE_MODENV)<>0
+			moveq	#0,d5		; no offset
+		endif
+
+		if FEATURE_PORTAMENTO
+			tst.b	cPortaSpeed(a1)	; check if portamento is active
+			bne.s	.apply		; if is, branch
+		endif
+
+		if FEATURE_MODENV
+			tst.b	cModEnv(a1)	; check if modulation envelope ID is not 0
+			bne.s	.apply		; if so, update frequency nonetheless
+		endif
+
+		if (FEATURE_PORTAMENTO|FEATURE_MODENV)<>0
+			bra.s	.doloop
+		endif
+
 .noret
 		if FEATURE_PORTAMENTO
 			tst.b	cPortaSpeed(a1)	; check if portamento is active
@@ -167,12 +186,14 @@ dModulate	macro jump,loop,type
 			tst.b	cModEnv(a1)	; check if modulation envelope ID is not 0
 			bne.s	.porta		; if so, update frequency nonetheless
 		endif
+
+.doloop
 	dGenLoops 0, %macpfx%jump,%macpfx%loop,%macpfx%type
 ; ---------------------------------------------------------------------------
 
 .started
 		subq.b	#1,cModSpeed(a1)	; decrease modulation speed counter
-		bne.s	.noret			; if there's still delay left, update vol and return
+		bne.s	.checkmod			; if there's still delay left, update vol and return
 		movea.l	cMod(a1),a4		; get modulation data offset to a1
 		move.b	(a4)+,cModSpeed(a1)	; reload modulation speed counter
 
@@ -186,6 +207,7 @@ dModulate	macro jump,loop,type
 		move.b	cModStep(a1),d5		; get step offset into d5
 		ext.w	d5			; extend to word
 
+.apply
 		add.w	cModFreq(a1),d5		; add modulation frequency to it
 		move.w	d5,cModFreq(a1)		; save as the modulation frequency
 		add.w	d5,d2			; add to frequency

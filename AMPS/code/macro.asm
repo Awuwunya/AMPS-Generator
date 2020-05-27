@@ -22,16 +22,7 @@
 	opt ae+
 %endif%
 
-FEATURE_SAFE_PSGFREQ =	1	; set to 1 to enable safety checks for PSG frequency. Some S3K SFX require this to be 0
-FEATURE_SFX_MASTERVOL =	0	; set to 1 to make SFX be affected by master volumes
-FEATURE_MODULATION =	1	; set to 1 to enable software modulation effect
-FEATURE_PORTAMENTO =	0	; set to 1 to enable portamento effect
-FEATURE_MODENV =	0	; set to 1 to enable modulation envelopes
-FEATURE_DACFMVOLENV =	0	; set to 1 to enable volume envelopes for FM & DAC channels
-FEATURE_UNDERWATER =	1	; set to 1 to enable underwater mode flag
-FEATURE_BACKUP =	1	; set to 1 to enable back-up channels. Used for the 1-up sound in Sonic 1, 2 and 3K
-FEATURE_BACKUPNOSFX =	1	; set to 1 to disable SFX while a song is backed up. Used for the 1-up sound
-FEATURE_FM6 =		1	; set to 1 to enable FM6 to be used in music
+%features%
 ; ---------------------------------------------------------------------------
 
 ; Select the tempo algorithm
@@ -82,6 +73,7 @@ cModCount	%rb% 1		; number of modulation steps until reversal
 
 	if FEATURE_PORTAMENTO
 cPortaSpeed	%rb% 1		; number of frames for portamento to complete. 0 means it is disabled
+		%reven%
 cPortaFreq	%rw% 1		; frequency offset for portamento
 cPortaDisp	%rw% 1		; frequency displacement per frame for portamento
 	endif
@@ -95,6 +87,12 @@ cEnvPos		%rb% 1		; volume envelope position
 cModEnv		%rb% 1		; modulation envelope ID
 cModEnvPos	%rb% 1		; modulation envelope position
 cModEnvSens	%rb% 1		; sensitivity of modulation envelope
+	endif
+
+	if FEATURE_SOUNDTEST
+		%reven%
+cChipFreq	%rw% 1		; frequency sent to the chip
+cChipVol	%rb% 1		; volume sent to the chip
 	endif
 
 cLoop		%rb% 3		; loop counter values
@@ -204,10 +202,10 @@ mCtrPal		%rb% 1		; frame counter fo 50hz fix
 mComm		%rb% 8		; communications bytes
 mMasterVolFM =	%re%		; master volume for FM channels
 mFadeAddr	%rl% 1		; fading program address
-mTempoMain	%rb% 1		; music normal tempo
-mTempoSpeed	%rb% 1		; music speed shoes tempo
-mTempo		%rb% 1		; current tempo we are using right now
-mTempoCur	%rb% 1		; tempo counter/accumulator
+mSpeed		%rb% 1		; music speed shoes tempo
+mSpeedAcc	%rb% 1		; music speed shoes tempo accumulator
+mTempo		%rb% 1		; music normal tempo
+mTempoAcc	%rb% 1		; music normal tempo accumulator
 mQueue		%rb% 3		; sound queue
 mMasterVolPSG	%rb% 1		; master volume for PSG channels
 mVctMus		%rl% 1		; address of voice table for music
@@ -259,10 +257,10 @@ mBackPSG1	%rb% cSize	; back-up PSG 1 data
 mBackPSG2	%rb% cSize	; back-up PSG 2 data
 mBackPSG3	%rb% cSize	; back-up PSG 3 data
 
-mBackTempoMain	%rb% 1		; back-up music normal tempo
-mBackTempoSpeed	%rb% 1		; back-up music speed shoes tempo
-mBackTempo	%rb% 1		; back-up current tempo we are using right now
-mBackTempoCur	%rb% 1		; back-up tempo counter/accumulator
+mBackSpeed	%rb% 1		; back-up music speed shoes tempo
+mBackSpeedAcc	%rb% 1		; back-up music speed shoes tempo accumulator
+mBackTempo	%rb% 1		; back-up music normal tempo
+mBackTempoAcc	%rb% 1		; back-up music normal tempo accumulator
 mBackVctMus	%rl% 1		; back-up address of voice table for music
 	endif
 ; ---------------------------------------------------------------------------
@@ -284,6 +282,7 @@ mfbWater	%rb% 1		; if set, underwater mode is active
 mfbNoPAL	%rb% 1		; if set, play songs slowly in PAL region
 mfbBacked	%rb% 1		; if set, a song has been backed up
 mfbExec		%rb% 1		; if set, AMPS is currently running
+mfbRunTwice	%rb% 1		; if set, AMPS should be updated twice at some point
 mfbPaused =	$07		; if set, sound driver is paused
 ; ===========================================================================
 ; ---------------------------------------------------------------------------

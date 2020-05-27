@@ -9,22 +9,24 @@ using System.Threading.Tasks;
 
 namespace AMPS_Generator {
 	class Program {
-		static readonly Func<string, AssemblerInfo> ConvAssembler = (s) => {
+		static readonly Func<string, Configuration> GetConfig = (s) => {
 			switch (s.ToUpperInvariant()) {
-				case "AS": return AssemblerInfo.AS;
-				case "ASM68K": return AssemblerInfo.ASM68K;
+				case "TEST": return Configuration.Test;
+				case "SONIC1": return Configuration.Sonic1;
+				case "SONIC2": return Configuration.Sonic2;
 			}
 
 			Console.Write("Invalid assembler " + s + "!");
 			Console.ReadKey();
 			Environment.Exit(-1);
-			return default(AssemblerInfo);
+			return default(Configuration);
 		};
 
 		static readonly string[] CheckValidFolder = {
 			"AMPS", @"AMPS\code", @"AMPS\code\68k Initialize.asm"
 		};
 
+		public static Configuration Config;
 		public static AssemblerInfo Assembler;
 		static readonly Regex ValidKey = new Regex("^[A-Z0-9]{2,}$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
@@ -32,8 +34,8 @@ namespace AMPS_Generator {
 			if(args.Length < 2) {
 				Console.Write(
 					"Usage: \"AMPS Generator\" <assembler> <output>\n" +
-					"<assembler :  Assembler version to target. ASM68K and AS are the valid options.\n" +
-					"<output> :    Folder to output data to, replacing or creating any files here.\n" +
+					"<config> : Configuration to target. The configuration determines all params.\n" +
+					"<output> : Folder to output data to, replacing or creating any files here.\n" +
 					"This tool was created to help standardize and make working with the multi-source" +
 					"setup easier for me. This source is released on Github to make it easier to\n" +
 					"contribute any changes to AMPS for anyone else."
@@ -44,7 +46,8 @@ namespace AMPS_Generator {
 			}
 
 			// update assembler
-			Assembler = ConvAssembler(args[0]);
+			Config = GetConfig(args[0]);
+			Assembler = Config.Assembler;
 
 			// check if folder ends with a slash
 			string folder = args[1];
@@ -62,6 +65,10 @@ namespace AMPS_Generator {
 
 			// process each file
 			foreach(string src in Directory.GetFiles("AMPS", "*", SearchOption.AllDirectories)) {
+				// ignore specific files
+				if (src == "AMPS\\Includer.exe.config" || src == "AMPS\\Includer.pdb")
+					continue;
+
 				byte[] dat = File.ReadAllBytes(src);
 				string dst = folder + src;
 
@@ -194,6 +201,7 @@ namespace AMPS_Generator {
 			{ "warning",  () => { return Assembler.Warning; } },
 			{ "fatal",  () => { return Assembler.Fatal; } },
 			{ "raiseerror",  () => { return Assembler.RaiseErrorCheck; } },
+			{ "features",  () => { return Config.Flags.Build(); } },
 		};
 
 		private static readonly Dictionary<string, Func<int, string, string>> KeyProc = new Dictionary<string, Func<int, string, string>>(){

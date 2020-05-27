@@ -324,10 +324,10 @@ AMPS_Debug_Console_Main:
 	move.b	mContLast.w,d2
 	Console.WriteLine "%<.b d0> %<.b d1> %<.b d2>"
 
-	move.b	mTempoMain.w,d0
-	move.b	mTempoSpeed.w,d1
-	move.b	mTempoMain.w,d2
-	move.b	mTempoSpeed.w,d3
+	move.b	mTempo.w,d0
+	move.b	mTempoAcc.w,d1
+	move.b	mSpeed.w,d2
+	move.b	mSpeedAcc.w,d3
 	Console.WriteLine "%<pal1>Tempo:  %<pal2>%<.b d0> %<.b d1> %<.b d2> %<.b d3>"
 
 	move.b	mMasterVolFM.w,d0
@@ -359,8 +359,8 @@ AMPS_Debug_Console_Main:
 	Console.WriteLine "%<pal1>PatMus: %<pal0>%<.l mVctMus.w sym|split>%<pal2,symdisp>"
 	Console.Write	  "%<pal1>Misc:   %<pal2>%<.b mFlags.w> %<.b mCtrPal.w> "
 	Console.WriteLine "%<.b mSpindash.w> %<.b mContCtr.w> %<.b mContLast.w>"
-	Console.Write	  "%<pal1>Tempo:  %<pal2>%<.b mTempoMain.w> %<.b mTempoSpeed.w> "
-	Console.WriteLine "%<.b mTempo.w> %<.b mTempoCur.w>"
+	Console.Write	  "%<pal1>Tempo:  %<pal2>%<.b mTempo.w> %<.b mTempoAcc.w> "
+	Console.WriteLine "%<.b mSpeed.w> %<.b mSpeedAcc.w>"
 	Console.Write	  "%<pal1>Volume: %<pal2>%<.b mMasterVolFM.w> %<.b mMasterVolDAC.w> "
 	Console.WriteLine "%<.b mMasterVolPSG.w>"
 	Console.WriteLine "%<pal1>Fade:   %<pal0>%<.l mFadeAddr.w sym|split>%<pal2,symdisp>"
