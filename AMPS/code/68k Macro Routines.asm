@@ -115,7 +115,13 @@ dPortamentoTrk	macro type
 ; ---------------------------------------------------------------------------
 
 dPortamento	macro type
+%ifasm% ASM68K
 .doporta
+%endif%
+%ifasm% AS
+.doporta label *				; AS sucks ASS
+%endif%
+
 		move.w	cPortaFreq(a1),d5	; load portamento frequency offset to d5
 		beq.s	.nochk			; branch if 0 already
 		bmi.s	.ppos			; branch if negative
@@ -164,7 +170,12 @@ dPortamento	macro type
 		clr.w	cPortaFreq(a1)		; reset portamento frequency
 	endif
 
+%ifasm% ASM68K
 .nowrap
+%endif%
+%ifasm% AS
+.nowrap	label *					; AS sucks ASS
+%endif%
     endm
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -234,7 +245,12 @@ dModulateWait	macro jump,loop,type
 ; ---------------------------------------------------------------------------
 
 dModulate	macro
+%ifasm% ASM68K
 .started
+%endif%
+%ifasm% AS
+.started label *				; AS sucks ASS
+%endif%
 		subq.b	#1,cModSpeed(a1)	; decrease modulation speed counter
 		bne.s	.checkapply		; if there's still delay left, update vol and return
 		movea.l	cMod(a1),a4		; get modulation data offset to a1
@@ -251,12 +267,22 @@ dModulate	macro
 		move.b	cModStep(a1),d5		; get step offset into d5
 		ext.w	d5			; extend to word
 
+%ifasm% ASM68K
 .apply
+%endif%
+%ifasm% AS
+.apply	label *					; AS sucks ASS
+%endif%
 		add.w	cModFreq(a1),d5		; add modulation frequency to it
 		move.w	d5,cModFreq(a1)		; save as the modulation frequency
 		add.w	d5,d2			; add to frequency
 
+%ifasm% ASM68K
 .porta
+%endif%
+%ifasm% AS
+.porta	label *					; AS sucks ASS
+%endif%
     endm
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
