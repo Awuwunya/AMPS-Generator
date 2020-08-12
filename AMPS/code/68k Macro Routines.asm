@@ -121,7 +121,6 @@ dPortamento	macro type
 %ifasm% AS
 .doporta label *				; AS sucks ASS
 %endif%
-
 		move.w	cPortaFreq(a1),d5	; load portamento frequency offset to d5
 		beq.s	.nochk			; branch if 0 already
 		bmi.s	.ppos			; branch if negative

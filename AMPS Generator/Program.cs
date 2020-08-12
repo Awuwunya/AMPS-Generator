@@ -14,6 +14,7 @@ namespace AMPS_Generator {
 				case "TEST": return Configuration.Test;
 				case "SONIC1": return Configuration.Sonic1;
 				case "SONIC2": return Configuration.Sonic2;
+				case "SONIC3K": return Configuration.Sonic3K;
 			}
 
 			Console.Write("Invalid assembler " + s + "!");

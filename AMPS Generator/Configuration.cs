@@ -15,6 +15,11 @@
 			Flags = ConfigFlags.Sonic12,
 		};
 
+		internal static Configuration Sonic3K = new Configuration() {
+			Assembler = AssemblerInfo.AS,
+			Flags = ConfigFlags.Sonic3,
+		};
+
 		internal AssemblerInfo Assembler;
 		internal ConfigFlags Flags;
 	}
@@ -29,6 +34,12 @@
 		internal static ConfigFlags Sonic12 = new ConfigFlags() {
 			SAFE_PSGFREQ = 1, SFX_MASTERVOL = 0, MODULATION = 1, PORTAMENTO = 0,
 			MODENV = 0, DACFMVOLENV = 0, UNDERWATER = 1, BACKUP = 1, SOUNDTEST = 0,
+			BACKUPNOSFX = 1, FM6 = 1,
+		};
+
+		internal static ConfigFlags Sonic3 = new ConfigFlags() {
+			SAFE_PSGFREQ = 0, SFX_MASTERVOL = 0, MODULATION = 1, PORTAMENTO = 0,
+			MODENV = 1, DACFMVOLENV = 1, UNDERWATER = 1, BACKUP = 1, SOUNDTEST = 0,
 			BACKUPNOSFX = 1, FM6 = 1,
 		};
 
