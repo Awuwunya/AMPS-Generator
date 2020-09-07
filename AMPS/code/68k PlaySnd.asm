@@ -180,10 +180,10 @@ locret_Unpause:
 dPlaySnd:
 		lea	mQueue.w,a4		; get address to the sound queue
 		moveq	#0,d1
+	rept FEATURE_QUEUESIZE-1
 		move.b	(a4)+,d1		; get sound ID for this slot
 		bne.s	.found			; if nonzero, a sound is queued
-		move.b	(a4)+,d1		; get sound ID for this slot
-		bne.s	.found			; if nonzero, a sound is queued
+	%endr%
 		move.b	(a4)+,d1		; get sound ID for this slot
 		beq.s	locret_Unpause		; if 0, no sounds were queued, return
 
@@ -242,13 +242,14 @@ dPlaySnd_Music:
 ; ---------------------------------------------------------------------------
 
 	if FEATURE_BACKUP
-		btst	#6,1(a2)		; check if this song should cause the last one to be backed up
+		btst	#5,1(a2)		; check if this song should cause the last one to be backed up
 		beq.s	.clrback		; if not, skip
 		bset	#mfbBacked,mFlags.w	; check if song was backed up (and if not, set the bit)
 		bne.s	.noback			; if yes, preserved the backed up song
 
 		move.l	mSpeed.w,mBackSpeed.w	; backup tempo settings
 		move.l	mVctMus.w,mBackVctMus.w	; backup voice table address
+		move.b	mFlags.w,mBackFlags.w	; backup flags
 
 		lea	mBackUpArea.w,a4	; load source address to a4
 		lea	mBackUpLoc.w,a3		; load destination address to a3
@@ -307,18 +308,21 @@ dPlaySnd_Music:
 		or.b	#1<<mfbNoPAL,mFlags.w	; disable PAL fix
 
 .noPAL
+		moveq	#1<<cfbWater,d3		; prepare extra flags
+		and.w	d4,d3			; and with loaded flags
+
 		move.b	(a2),d0			; load the PSG channel count to d0
 		ext.w	d0			; extend to word (later, its read from stack)
 		move.w	d0,-(sp)		; store in stack
 		addq.w	#2,a2			; go to DAC1 data section
 
-		and.w	#$3F,d4			; keep tick multiplier value in range
+		and.w	#$0F,d4			; keep tick multiplier value in range
 		moveq	#cSize,d6		; prepare channel size to d6
 		moveq	#1,d5			; prepare duration of 0 frames to d5
 
-		moveq	#%mvq%(1<<cfbRun)|(1<<cfbVol),d2; prepare running tracker and volume flags into d2
 		moveq	#%mq%C0,d1%at%		; prepare panning value of centre to d1
-		move.w	#$100,d3		; prepare default DAC frequency to d3
+		moveq	#%mvq%(1<<cfbRun)|(1<<cfbVol),d2; prepare running tracker and volume flags into d2
+		or.b	d3,d2			; or extra flags to d2
 ; ---------------------------------------------------------------------------
 
 		lea	mDAC1.w,a1		; start from DAC1 channel
@@ -332,7 +336,7 @@ dPlaySnd_Music:
 		move.b	d6,cStack(a1)		; reset channel stack pointer
 		move.b	d1,cPanning(a1)		; reset panning to centre
 		move.b	d5,cDuration(a1)	; reset channel duration
-		move.w	d3,cFreq(a1)		; reset channel base frequency
+		move.w	#$100,cFreq(a1)		; reset channel base frequency
 
 		move.l	a2,a3			; load music header position to a3
 		add.w	(a2)+,a3		; add tracker offset to a3
@@ -360,6 +364,7 @@ dPlaySnd_Music:
 
 		ext.w	d0			; convert byte to word (because of dbf)
 		moveq	#%mvq%(1<<cfbRun)|(1<<cfbRest),d2; prepare running tracker and channel rest flags to d2
+		or.b	d3,d2			; or extra flags to d2
 
 .loopFM
 		move.b	d2,(a1)			; save channel flags
@@ -395,10 +400,11 @@ dPlaySnd_Music:
 		bmi.s	.finish			; if no PSG channels are loaded, branch
 	endif
 
-		moveq	#%mvq%(1<<cfbRun)|(1<<cfbVol)|(1<<cfbRest),d2; prepare running tracker, resting and volume flags into d2
 		moveq	#2,d5			; prepare duration of 1 frames to d5
 		lea	dPSGtypeVals(pc),a4	; prepare PSG type value list into a4
 		lea	mPSG1.w,a1		; start from PSG1 channel
+		moveq	#%mvq%(1<<cfbRun)|(1<<cfbVol)|(1<<cfbRest),d2; prepare running tracker, resting and volume flags into d2
+		or.b	d3,d2			; or extra flags to d2
 
 .loopPSG
 		move.b	d2,(a1)			; save channel flags
@@ -474,12 +480,10 @@ dPSGtypeVals:	dc.b ctPSG1, ctPSG2, ctPSG3
 ;
 ; thrash:
 ;   d0 - Loop counter for each channel
-;   d6 - Size of each channel
 ;   a1 - Current sound channel address that is being processed
 ;   a2 - Current address into the tracker data
 ;   a3 - Used for channel address calculation
 ;   a4 - Type values arrays
-;   d6 - Temporarily used to hold the speed shoes tempo
 ;   all - other dregisters are gonna be used too
 ; ---------------------------------------------------------------------------
 
@@ -499,6 +503,7 @@ dPlaySnd_SFX:
 
 %pcreldef% .index SoundIndex-(SFXoff*4)		; effin ASS
 		lea	%pcrelref%(pc),a1%at%%at%; get sfx pointer table with an offset to a1
+		move.b	d1,d6			; copy id to d6
 		add.w	d1,d1			; quadruple sfx ID
 		add.w	d1,d1			; since each entry is 4 bytes in size
 		move.l	(a1,d1.w),a2		; get SFX header pointer from the table
@@ -556,11 +561,10 @@ dPlaySnd_SFX:
 		rts
 ; ---------------------------------------------------------------------------
 
-.nocont
-		moveq	#0,d1			; clear last continous sfx
-
 .setcont
 		move.b	d1,mContLast.w		; save new continous SFX ID
+
+.nocont
 		moveq	#0,d1			; reset channel count
 		lea	dSFXoverList(pc),a5	; load quick reference to the SFX override list to a5
 		lea	dSFXoffList(pc),a4	; load quick reference to the SFX channel list to a4
@@ -575,7 +579,6 @@ dPlaySnd_SFX:
 		moveq	#0,d0
 		move.b	(a2)+,d2		; load sound effect priority to d2
 		move.b	(a2)+,d0		; load number of SFX channels to d0
-		moveq	#cSizeSFX,d6		; prepare SFX channel size to d6
 
 .loopSFX
 		moveq	#0,d3
@@ -627,6 +630,16 @@ dPlaySnd_SFX:
 ; ---------------------------------------------------------------------------
 
 .clearCh
+		move.b	mContLast.w,d3		; load continuous sound effect ID to d3
+		cmp.b	d6,d3			; check if the current sfx is continuous
+		beq.s	.skipcont		; if yes, we don't want to clear it
+
+		cmp.b	cSoundID(a1),d3		; check if the channel was continuous sfx
+		bne.s	.skipcont		; branch if nahh
+		clr.b	mContLast.w		; reset continuous sfx
+		clr.b	mContCtr.w		; stop any other channels asap
+
+.skipcont
 		move.w	a1,a3			; copy sound effect channel RAM pointer to a3
 
 	rept cSizeSFX/4				; repeat by the number of long words for channel data
@@ -650,11 +663,14 @@ dPlaySnd_SFX:
 	endif
 
 		move.w	(a2)+,cPitch(a1)	; load pitch offset and channel volume
+		move.b	d6,cSoundID(a1)		; save sound ID to channel
+
 		tst.b	d5			; check if this channel is a PSG channel
 		bmi.s	.loop			; if is, skip over this
 		moveq	#%mq%C0,d3%at%		; set panning to centre
 		move.b	d3,cPanning(a1)		; save to channel memory too
 
+		swap	d6			; store sound ID
 	CheckCue				; check that YM cue is valid
 	InitChYM				; prepare to write to channel
 	stopZ80
@@ -665,6 +681,7 @@ dPlaySnd_SFX:
 		cmp.w	#mSFXDAC1,a1		; check if this channel is a DAC channel
 		bne.s	.fm			; if not, branch
 		move.w	#$100,cFreq(a1)		; DAC default frequency is $100, NOT $000
+		swap	d6			; restore sound ID
 
 .loop
 		addq.w	#1,d1			; set channel as loaded
@@ -691,6 +708,7 @@ dPlaySnd_SFX:
 
 	;	st	(a0)			; write end marker
 	startZ80
+		swap	d6			; restore sound ID
 		dbf	d0,.loopSFX		; repeat for each requested channel
 		rts
 ; ===========================================================================
@@ -905,7 +923,7 @@ dPlaySnd_ShoesOff:
 dPlaySnd_ToWater:
 	if FEATURE_UNDERWATER
 		bset	#mfbWater,mFlags.w	; enable underwater mode
-		bra.s	dReqVolUpFM		; request FM volume update
+		bra.s	dReqVolUpAll		; request all volume updates
 	endif
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -917,6 +935,26 @@ dPlaySnd_OutWater:
 		bclr	#mfbWater,mFlags.w	; disable underwater mode
 	else
 		rts
+	endif
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Force volume update on all channels
+;
+; thrash:
+;   d6 - Used for quickly OR-ing the value
+; ---------------------------------------------------------------------------
+
+dReqVolUpAll:
+		bsr.s	dReqVolUpPSG		; update PSG volumes
+
+.ch %set%	mDAC1					; start at DAC1
+	rept Mus_DAC				; do for all music DAC channels
+		or.b	d6,.ch.w		; tell the channel to update its volume
+.ch %set%		.ch+cSize			; go to next channel
+	%endr%
+
+	if FEATURE_SFX_MASTERVOL
+		or.b	d6,mSFXDAC1.w		; tell SFX DAC1 to update its volume
 	endif
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -942,6 +980,33 @@ dReqVolUpMusicFM:
 .ch %set%	mFM1					; start at FM1
 	rept Mus_FM				; loop through all music FM channels
 		or.b	d6,.ch.w		; request channel volume update
+.ch %set%		.ch+cSize			; go to next channel
+	%endr%
+		rts
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Force volume update on all PSG channels
+;
+; thrash:
+;   d6 - Used for quickly OR-ing the value
+; ---------------------------------------------------------------------------
+
+dReqVolUpPSG:
+		moveq	#1<<cfbVol,d6		; prepare volume update flag to d6
+
+.ch %set%		mSFXPSG1			; start at SFX PSG1
+		rept SFX_PSG			; do for all SFX PSG channels
+			or.b	d6,.ch.w	; tell the channel to update its volume
+.ch %set%			.ch+cSizeSFX		; go to next channel
+		%endr%
+; ---------------------------------------------------------------------------
+
+dReqVolUpMusicPSG:
+		moveq	#1<<cfbVol,d6		; prepare volume update flag to d6
+
+.ch %set%	mPSG1					; start at PSG1
+	rept Mus_PSG				; do for all music PSG channels
+		or.b	d6,.ch.w		; tell the channel to update its volume
 .ch %set%		.ch+cSize			; go to next channel
 	%endr%
 

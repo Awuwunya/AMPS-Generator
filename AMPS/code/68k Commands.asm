@@ -459,8 +459,13 @@ dcsFreqNote:
 ; ---------------------------------------------------------------------------
 
 dcCont:
+		move.b	cSoundID(a1),d3		; load sound effect ID to d3
+		cmp.b	mContLast.w,d3		; check if this is the continuous sfx
+		bne.s	.skip			; if not, then don't keep repeating
 		subq.b	#1,mContCtr.w		; decrease continous loop counter
 		bpl.s	dcJump			; if positive, jump to routine
+
+.skip
 		clr.b	mContLast.w		; clear continous SFX ID
 		addq.w	#2,a2			; skip over jump offset
 		rts
@@ -638,10 +643,6 @@ dcSpecFM3:
 ; ---------------------------------------------------------------------------
 
 dcVolEnv:
-	if (FEATURE_DACFMVOLENV=0)&(safe=1)
-		AMPS_Debug_dcVolEnv		; display an error if an invalid channel attempts to load a volume envelope
-	endif
-
 		move.b	(a2)+,cVolEnv(a1)	; load the volume envelope ID
 		rts
 ; ===========================================================================
@@ -665,8 +666,12 @@ dcModEnv:
 dcBackup:
 	if FEATURE_BACKUP
 		addq.l	#4,sp			; stop the other channels from playing
-		btst	#mfbBacked,mFlags.w	; check if there is a backed up track
+		bclr	#mfbBacked,mFlags.w	; check if there is a backed up track
 		beq.w	dPlaySnd_Stop		; if not, just stop all music instead
+
+		moveq	#(1<<mfbSwap)|(1<<mfbSpeed)|(1<<mfbWater),d0; load flags mask
+		and.b	mFlags.w,d0		; AND with current flags
+		move.w	d0,-(sp)		; store into stack for now
 		jsr	dPlaySnd_Stop(pc)	; gotta do it anyway tho but continue below
 ; ---------------------------------------------------------------------------
 ; The reason we do fade in right here instead of later, is so we can update
@@ -678,6 +683,11 @@ dcBackup:
 
 		move.l	mBackSpeed.w,mSpeed.w	; restore tempo settings
 		move.l	mBackVctMus.w,mVctMus.w	; restore voice table address
+
+		moveq	#(1<<mfbNoPAL)|(1<<mfbExec)|(1<<mfbRunTwice),d0; load flags mask
+		and.b	mBackFlags.w,d0		; AND backup flags to d0
+		or.w	(sp)+,d0		; OR flags from original flags
+		move.b	d0,mFlags.w		; save into flags again
 
 		lea	mBackUpLoc.w,a4		; load source address to a4
 		lea	mBackUpArea.w,a3	; load destination address to a3
@@ -758,14 +768,9 @@ dcVoice:
 		move.b	(a2)+,d4		; load voice/sample/volume envelope from tracker to d4
 		move.b	d4,cVoice(a1)		; save to channel
 
-	if FEATURE_DACFMVOLENV
-		if safe=1
-			AMPS_Debug_dcVoiceEnv	; warn user if DAC & FM volume envelopes are enabled. This behaviour can be removed
-		endif				; for better integration of FM/DAC tracker code with PSG channels.
-	else
-		tst.b	cType(a1)		; check if this is a PSG channel
-		bmi.s	locret_Backup		; if is, skip
-	endif
+	if safe=1
+		AMPS_Debug_dcVoiceEnv		; warn user if DAC & FM volume envelopes are enabled. This behaviour can be removed
+	endif					; for better integration of FM/DAC tracker code with PSG channels.
 
 		btst	#ctbDAC,cType(a1)	; check if this is a DAC channel
 		bne.s	locret_Backup		; if is, skip
@@ -880,6 +885,8 @@ dUpdateVoiceFM:
 	if FEATURE_UNDERWATER
 		clr.w	d6			; no underwater 4 u
 
+		btst	#cfbWater,(a1)		; check if underwater mode is disabled
+		bne.s	.uwdone			; if yes, skip
 		btst	#mfbWater,mFlags.w	; check if underwater mode is enabled
 		beq.s	.uwdone			; if not, skip
 		lea	dUnderwaterTbl(pc),a2	; get underwater table to a2

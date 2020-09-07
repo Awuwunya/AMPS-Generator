@@ -20,11 +20,6 @@ dAMPSnextDAC:
 	dCalcFreq				; calculate channel base frequency
 	dModPortaWait	dAMPSdoFM, dAMPSnextDAC, 4; run modulation + portamento code
 		bsr.w	dUpdateFreqDAC		; if frequency needs changing, do it
-
-	if FEATURE_DACFMVOLENV=0
-		bclr	#cfbVol,(a1)		; check if volume update is needed and clear bit
-		beq.s	.next			; if not, skip
-	endif
 		bsr.w	dUpdateVolDAC		; update DAC volume
 
 .next
@@ -61,10 +56,6 @@ dAMPSnextDAC:
 		bsr.s	dNoteOnDAC2		; ''
 
 .ckvol
-	if FEATURE_DACFMVOLENV=0
-		bclr	#cfbVol,(a1)		; check if volume update is needed and clear bit
-		beq.s	.next2			; if not, skip
-	endif
 		bsr.w	dUpdateVolDAC		; update DAC volume
 
 .next2
@@ -198,6 +189,29 @@ dUpdateFreqDAC3:
 		AMPS_Debug_FreqDAC		; check if DAC frequency is in bounds
 	endif
 
+	if FEATURE_UNDERWATER
+		btst	#cfbWater,(a1)		; check if underwater mode is disabled
+		bne.s	.uwdone			; if yes, skip
+		btst	#mfbWater,mFlags.w	; check if underwater mode is enabled
+		beq.s	.uwdone			; if not, skip
+		moveq	#$C,d3			; prepare frequency displacement to d3
+		tst.w	d2			; check frequency sign
+		bmi.s	.neg			; branch if negative
+
+		sub.w	d3,d2			; sub the frequency from actual freq
+		bcc.s	.uwdone			; if no underflow, branch
+		add.w	d3,d2			; add the displacement back (can't really do much atm)
+		bra.s	.uwdone
+
+.neg
+		add.w	d3,d2			; add the frequency to actual freq
+		bcc.s	.uwdone			; if no underflow, branch
+		add.w	d3,d2			; sub the displacement back (can't really do much atm)
+
+.uwdone
+	endif
+; ---------------------------------------------------------------------------
+
 	if FEATURE_SOUNDTEST
 		move.w	d2,cChipFreq(a1)	; save frequency to chip
 	endif
@@ -242,11 +256,6 @@ dAMPSdoDACSFX:
 	dCalcFreq				; calculate channel base frequency
 	dModPortaWait	dAMPSdoFMSFX, dAMPSdoFMSFX, 5; run modulation + portamento code
 		bsr.w	dUpdateFreqDAC2		; if frequency needs changing, do it
-
-	if FEATURE_DACFMVOLENV=0
-		bclr	#cfbVol,(a1)		; check if volume update is needed and clear bit
-		beq.s	.next			; if not, skip
-	endif
 		bsr.w	dUpdateVolDAC_SFX	; update DAC volume
 
 .next
@@ -282,10 +291,6 @@ dAMPSdoDACSFX:
 		bsr.w	dNoteOnDAC2		; ''
 
 .ckvol
-	if FEATURE_DACFMVOLENV=0
-		bclr	#cfbVol,(a1)		; check if volume update is needed and clear bit
-		beq.s	.next2			; if not, skip
-	endif
 		bsr.s	dUpdateVolDAC_SFX	; update DAC volume
 
 .next2
@@ -319,7 +324,6 @@ dUpdateVolDAC:
 		add.w	d4,d1			; add channel volume to d1
 
 dUpdateVolDAC3:
-	if FEATURE_DACFMVOLENV
 		moveq	#0,d4
 		move.b	cVolEnv(a1),d4		; load volume envelope ID to d4
 		beq.s	.ckflag			; if 0, check if volume update was needed
@@ -330,16 +334,23 @@ dUpdateVolDAC3:
 .ckflag
 		btst	#cfbVol,(a1)		; test volume update flag
 		beq.s	locret_VolDAC		; branch if no volume update was requested
-	endif
 ; ---------------------------------------------------------------------------
 
 dUpdateVolDAC2:
-	if FEATURE_DACFMVOLENV
 		bclr	#cfbVol,(a1)		; clear volume update flag
-	endif
 		btst	#cfbInt,(a1)		; is the channel interrupted by SFX?
 		bne.s	locret_VolDAC		; if yes, do not update
 
+	if FEATURE_UNDERWATER
+		btst	#cfbWater,(a1)		; check if underwater mode is disabled
+		bne.s	.uwdone			; if yes, skip
+		btst	#mfbWater,mFlags.w	; check if underwater mode is enabled
+		sne	d2			; if yes, set d2
+		and.b	#4,d2			; volume offset is either 0 or 4
+		add.b	d2,d1			; add to volume
+	endif
+
+.uwdone
 		cmp.w	#$80,d1			; check if volume is out of range
 		bls.s	.nocap			; if not, branch
 		spl	d1			; if positive (above $7F), set to $FF. Otherwise, set to $00

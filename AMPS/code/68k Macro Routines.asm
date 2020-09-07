@@ -290,11 +290,6 @@ dModulate	macro
 
 dGenLoops	macro	mode,jump,loop,type
 	if %macpfx%type>=0
-		if FEATURE_DACFMVOLENV=0
-			bclr	#cfbVol,(a1)	; check if volume update is needed and clear bit
-			beq.s	.noupdatevol	; if not, skip
-		endif
-
 		if %macpfx%type<2
 			jsr	dUpdateVolFM(pc); update FM volume
 		endif
@@ -436,10 +431,7 @@ dProcNote	macro	sfx, chan
 	if %macpfx%sfx=0
 		move.b	cGateMain(a1),cGateCur(a1); copy gate value
 	endif
-
-	if FEATURE_DACFMVOLENV|(%macpfx%chan=1)
-		clr.b	cEnvPos(a1)		; clear envelope position if PSG channel or FEATURE_DACFMVOLENV enabled
-	endif
+		clr.b	cEnvPos(a1)		; clear envelope position
 
 	if FEATURE_MODENV
 		clr.b	cModEnvPos(a1)		; clear modulation envelope position
@@ -499,20 +491,9 @@ dTrackNoteDAC	macro
 ; ---------------------------------------------------------------------------
 
 dKeyOnFM	macro	sfx
-%ifasm% AS
-	if "sfx"==""
-%endif%
-%ifasm% ASM68K
-	if narg=0
-%endif%
-		btst	#cfbInt,(a1)		; check if overridden by sfx
-		bne.s	.k			; if so, do not note on
-	endif
-
-		btst	#cfbHold,(a1)		; check if note is held
-		bne.s	.k			; if so, do not note on
-		btst	#cfbRest,(a1)		; check if channel is resting
-		bne.s	.k			; if so, do not note on
+		moveq	#(1<<cfbInt)|(1<<cfbHold)|(1<<cfbRest),d3; check if overridden, note held, or resting
+		and.b	(a1),d3			; AND flags with d3
+		bne.s	.k			; if any of those are set, branch
 
 		moveq	#%mq%F0,d3%at%		; turn all FM operators on
 		or.b	cType(a1),d3		; OR channel type bits to d3
@@ -557,7 +538,6 @@ dGetFreqPSG	macro
 dStopChannel	macro	stop
 		tst.b	cType(a1)		; check if this was a PSG channel
 		bmi.s	.mutePSG		; if yes, mute it
-
 		btst	#ctbDAC,cType(a1)	; check if this was a DAC channel
 		bne.s	.muteDAC		; if we are, mute that
 

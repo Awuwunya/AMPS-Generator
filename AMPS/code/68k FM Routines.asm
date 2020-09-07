@@ -75,11 +75,8 @@ locret_MuteFM:
 
 dUpdateVolFM_SFX:
 	if FEATURE_SFX_MASTERVOL=0
-		if FEATURE_DACFMVOLENV
-			btst	#cfbRest,(a1)	; check if channel is resting
-			bne.s	locret_MuteFM	; if is, do not update anything
-		endif
-
+		btst	#cfbRest,(a1)		; check if channel is resting
+		bne.s	locret_MuteFM		; if is, do not update anything
 		move.b	cVolume(a1),d1		; load FM channel volume to d1
 		ext.w	d1			; extend it to word
 		bra.s	dUpdateVolFM3		; do NOT add the master volume!
@@ -87,11 +84,8 @@ dUpdateVolFM_SFX:
 ; ---------------------------------------------------------------------------
 
 dUpdateVolFM:
-	if FEATURE_DACFMVOLENV
 		btst	#cfbRest,(a1)		; check if channel is resting
 		bne.s	locret_MuteFM		; if is, do not update anything
-	endif
-
 		move.b	mMasterVolFM.w,d1	; load FM master volume to d1
 		ext.w	d1			; extend to word
 
@@ -100,7 +94,6 @@ dUpdateVolFM:
 		add.w	d4,d1			; add channel volume to d1
 
 dUpdateVolFM3:
-	if FEATURE_DACFMVOLENV
 		moveq	#0,d4
 		move.b	cVolEnv(a1),d4		; load volume envelope ID to d4
 		beq.s	.ckflag			; if 0, check if volume update was needed
@@ -111,13 +104,10 @@ dUpdateVolFM3:
 .ckflag
 		btst	#cfbVol,(a1)		; test volume update flag
 		beq.s	locret_MuteFM		; branch if no volume update was requested
-	endif
 ; ---------------------------------------------------------------------------
 
 dUpdateVolFM2:
-	if FEATURE_DACFMVOLENV
 		bclr	#cfbVol,(a1)		; clear volume update flag
-	endif
 		btst	#cfbInt,(a1)		; is the channel interrupted by SFX?
 		bne.s	locret_MuteFM		; if yes, do not update
 
@@ -129,6 +119,8 @@ dUpdateVolFM2:
 	if FEATURE_UNDERWATER
 		clr.w	d6			; clear d6 (so no underwater by default)
 
+		btst	#cfbWater,(a1)		; check if underwater mode is disabled
+		bne.s	.uwdone			; if yes, skip
 		btst	#mfbWater,mFlags.w	; check if underwater mode is enabled
 		beq.s	.uwdone			; if not, skip
 		move.b	(a4),d4			; load algorithm and feedback to d4
@@ -236,12 +228,7 @@ dAMPSnextFMSFX:
 
 	dCalcFreq				; calculate channel base frequency
 	dModPortaWait	dAMPSdoPSGSFX, dAMPSnextFMSFX, 1; run modulation + portamento code
-		bsr.w	dUpdateFreqFM3		; send FM frequency to hardware
-
-	if FEATURE_DACFMVOLENV=0
-		bclr	#cfbVol,(a1)		; check if volume update is needed and clear bit
-		beq.s	.next			; if not, skip
-	endif
+		bsr.w	dUpdateFreqFM2		; send FM frequency to hardware
 		jsr	dUpdateVolFM_SFX(pc)	; update FM volume
 
 .next
@@ -252,7 +239,7 @@ dAMPSnextFMSFX:
 .update
 		and.b	#$FF-(1<<cfbHold)-(1<<cfbRest),(a1); clear hold and rest flags
 	dDoTracker				; process tracker
-		jsr	dKeyOffFM2(pc)		; send key-off command to YM
+		jsr	dKeyOffFM(pc)		; send key-off command to YM
 
 		tst.b	d1			; check if note is being played
 		bpl.s	.timer			; if not, it must be a timer. Branch
@@ -271,11 +258,6 @@ dAMPSnextFMSFX:
 	dProcNote 1, 0				; reset necessary channel memory
 		bsr.w	dUpdateFreqFM		; send FM frequency to hardware
 	dKeyOnFM 1				; send key-on command to YM
-
-	if FEATURE_DACFMVOLENV=0
-		bclr	#cfbVol,(a1)		; check if volume update is needed and clear bit
-		beq.s	.noupdate		; if not, branch
-	endif
 		jsr	dUpdateVolFM_SFX(pc)	; update FM volume
 
 .noupdate
@@ -300,11 +282,6 @@ dAMPSnextFM:
 	dCalcFreq				; calculate channel base frequency
 	dModPortaWait dAMPSdoPSG, dAMPSnextFM, 0; run modulation + portamento code
 		bsr.w	dUpdateFreqFM2		; send FM frequency to hardware
-
-	if FEATURE_DACFMVOLENV=0
-		bclr	#cfbVol,(a1)		; check if volume update is needed and clear bit
-		beq.s	.next			; if not, skip
-	endif
 		jsr	dUpdateVolFM(pc)	; update FM volume
 
 .next
@@ -334,11 +311,6 @@ dAMPSnextFM:
 	dProcNote 0, 0				; reset necessary channel memory
 		bsr.s	dUpdateFreqFM		; send FM frequency to hardware
 	dKeyOnFM				; send key-on command to YM
-
-	if FEATURE_DACFMVOLENV=0
-		bclr	#cfbVol,(a1)		; check if volume update is needed and clear bit
-		beq.s	.noupdate		; if not, branch
-	endif
 		jsr	dUpdateVolFM(pc)	; update FM volume
 
 .noupdate
@@ -371,16 +343,13 @@ dUpdateFreqFM:
 ; ---------------------------------------------------------------------------
 
 dUpdateFreqFM2:
-		btst	#cfbInt,(a1)		; is the channel interrupted by SFX?
-		bne.s	locret_UpdFreqFM	; if is, do not update frequency
-
-dUpdateFreqFM3:
 	if FEATURE_SOUNDTEST
 		move.w	d2,cChipFreq(a1)	; save frequency to chip
 	endif
 
-		btst	#cfbRest,(a1)		; is this channel resting
-		bne.s	locret_UpdFreqFM	; if is, skip
+		moveq	#(1<<cfbInt)|(1<<cfbRest),d3; check for if channel is interrupted or resting
+		and.b	(a1),d3			; and flags with d6
+		bne.s	locret_UpdFreqFM	; if either flag set, branch
 
 		move.w	d2,d3			; copy frequency to d3
 		lsr.w	#8,d3			; shift upper byte into lower byte
@@ -439,12 +408,10 @@ locret_GetFreqFM:
 ; ---------------------------------------------------------------------------
 
 dKeyOffFM:
-		btst	#cfbInt,(a1)		; check if overridden by sfx
-		bne.s	locret_UpdFreqFM	; if so, do not note off
+		moveq	#(1<<cfbInt)|(1<<cfbHold),d3; check for if channel is interrupted or note is held
+		and.b	(a1),d3			; and flags with d3
+		bne.s	.rts			; if either flag set, branch
 
-dKeyOffFM2:
-		btst	#cfbHold,(a1)		; check if note is held
-		bne.s	.rts			; if so, do not note off
 		move.b	cType(a1),d3		; load channel type value to d3
 		moveq	#$28,d4			; load key on/off to d4
 

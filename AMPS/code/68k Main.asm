@@ -313,18 +313,10 @@ dUpdateAllAMPS:
 		beq.s	.checkspeed		; if did not, branch
 		move.b	d2,mMasterVolPSG.w	; save new volume
 
-.ch %set%	mPSG1					; start at PSG1
-	rept Mus_PSG				; do for all music PSG channels
-		or.b	d0,.ch.w		; tell the channel to update its volume
-.ch %set%		.ch+cSize			; go to next channel
-	%endr%
-
 	if FEATURE_SFX_MASTERVOL
-.ch %set%		mSFXPSG1			; start at SFX PSG1
-		rept SFX_PSG			; do for all SFX PSG channels
-			or.b	d0,.ch.w	; tell the channel to update its volume
-.ch %set%			.ch+cSizeSFX		; go to next channel
-		%endr%
+		jsr	dReqVolUpPSG(pc)	; go request volume update for PSG
+	else
+		jsr	dReqVolUpMusicPSG(pc)	; only request music channels to update
 	endif
 ; ---------------------------------------------------------------------------
 ; This piece of code is used to emulate the Sonic 3 & Knuckles speed
@@ -337,21 +329,12 @@ dUpdateAllAMPS:
 
 .checkspeed
 		jsr	dAMPSdoSFX(pc)		; run SFX before anything
-
 		btst	#mfbSpeed,mFlags.w	; check speed shoes flag
 		beq.s	.chkregion		; if not enabled, branch
 
-	if TEMPO_ALGORITHM		; Counter method
-		subq.b	#1,mSpeedAcc.w		; sub 1 from counter
-		bne.s	.chkregion		; if nonzero, branch
-		move.b	mSpeed.w,mSpeedAcc.w	; copy tempo again
-
-	else				; Overflow method
 		move.b	mSpeed.w,d3		; get tempo to d3
 		add.b	d3,mSpeedAcc.w		; add to accumulator
 		bcc.s	.chkregion		; if carry clear, branch
-	endif
-
 		bset	#mfbRunTwice,mFlags.w	; enable run twice flag
 ; ---------------------------------------------------------------------------
 ; Since PAL Mega Drive's run slower than NTSC, if we want the music to
@@ -389,16 +372,9 @@ dUpdateAllAMPS:
 ; better. You may choose this setting in the macro.asm file.
 ; ---------------------------------------------------------------------------
 
-	if TEMPO_ALGORITHM		; Counter method
-		subq.b	#1,mTempoAcc.w		; sub 1 from counter
-		bne.s	dAMPSdoDAC		; if nonzero, branch
-		move.b	mTempo.w,mTempoAcc.w	; copy tempo again
-
-	else				; Overflow method
 		move.b	mTempo.w,d3		; get tempo to d3
 		add.b	d3,mTempoAcc.w		; add to accumulator
 		bcc.s	dAMPSdoDAC		; if carry clear, branch
-	endif
 
 		bclr	#mfbRunTwice,mFlags.w	; clear run twice flag
 		bne.s	dAMPSdoDAC		; if was set before, save a bit of time

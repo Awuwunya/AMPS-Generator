@@ -215,7 +215,6 @@ AMPS_Debug_Console_Channel:
 	endif
 ; ---------------------------------------------------------------------------
 
-	if FEATURE_DACFMVOLENV
 %ifasm% AS
 		move.b	cVolEnv(a1),d0
 		move.b	cEnvPos(a1),d1
@@ -228,7 +227,6 @@ AMPS_Debug_Console_Channel:
 		if FEATURE_MODENV=0
 			Console.BreakLine
 		endif
-	endif
 ; ---------------------------------------------------------------------------
 
 	if FEATURE_MODENV
@@ -611,7 +609,7 @@ AMPS_DebugR_dcModulate:
 	endif
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
-; Handler for special case of FEATURE_DACFMVOLENV in dcVoice
+; Handler for PSG channel using dcVoice
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcVoiceEnv	macro
@@ -627,29 +625,10 @@ AMPS_Debug_dcVoiceEnv	macro
     endm
 ; ---------------------------------------------------------------------------
 
-	if FEATURE_DACFMVOLENV
 	if %raiseerror%	; check if Vladik's debugger is active
 AMPS_DebugR_dcVoiceEnv:
-		RaiseError "You can not use sVoice for PSG channelwhen FEATURE_DACFMVOLENV is set to 1. Please use sVolEnv instead.", AMPS_Debug_Console_Channel
+		RaiseError "You can not use sVoice for PSG channel.   Please use sVolEnv instead.", AMPS_Debug_Console_Channel
 	endif
-	endif
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Handler for disabled features - volume envelopes
-; ---------------------------------------------------------------------------
-
-AMPS_Debug_dcVolEnv	macro
-	tst.b	cType(a1)	; check if this is a PSG channel
-	bmi.s	.ok		; if is, skip
-
-	if %raiseerror%	; check if Vladik's debugger is active
-		RaiseError "Volume envelopes are disabled for DAC and FM channels. Set FEATURE_DACFMVOLENV to 1 to enable.", AMPS_Debug_Console_Channel
-	else
-		bra.w	*
-	endif
-
-.ok
-    endm
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Handler for disabled features - modulation envelopes
@@ -798,19 +777,9 @@ AMPS_Debug_dcLoop	macro
 	cmp.b	#cSizeSFX-cLoop,d4	; check for invalid call number
 	bhi.s	.fail			; if is, branch
 	cmp.w	#mSFXDAC1,a1		; check for SFX channel
-	blo.s	.nosfx			; if no, branch
+	blo.s	.ok			; if no, branch
 	cmp.b	#cPrio-cLoop,d4		; check if cPrio
-	beq.s	.fail			; if so, branch
-
-.nosfx
-	if FEATURE_DACFMVOLENV
-		bra.s	.ok		; no need to check others
-	else
-		cmp.b	#$C0,cType(a1)	; check if PSG3 or PSG4
-		blo.s	.ok		; if no, branch
-		cmp.b	#cStatPSG4-cLoop,d4; check if cStatPSG4
-		bne.s	.ok		; if no, branch
-	endif
+	bne.s	.ok			; if not, branch
 
 .fail
 	if %raiseerror%	; check if Vladik's debugger is active

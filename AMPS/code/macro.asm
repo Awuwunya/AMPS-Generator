@@ -25,12 +25,6 @@
 %features%
 ; ---------------------------------------------------------------------------
 
-; Select the tempo algorithm
-; 0 = Overflow method
-; 1 = Counter method
-
-TEMPO_ALGORITHM =	0
-
 ; if safe mode is enabled (1), then the driver will attempt to find any issues
 ; if Vladik's error debugger is installed, then the error will be displayed
 ; else, the CPU is trapped
@@ -44,18 +38,14 @@ safe =	1
 	%rsset% 0
 cFlags		%rb% 1		; various channel flags, see below
 cType		%rb% 1		; hardware type for the channel
+cSoundID =	%re%		; channel sound ID. SFX only. Used for continuous SFX
 cData		%rl% 1		; tracker address for the channel
-	if FEATURE_DACFMVOLENV=0
-cEnvPos =	%re%		; volume envelope position. PSG only
-	endif
+cStatPSG4 =	%re%		; PSG4 type value. PSG3 only
 cPanning	%rb% 1		; channel panning and LFO. FM and DAC only
 cDetune		%rb% 1		; frequency detune (offset)
 cPitch		%rb% 1		; pitch (transposition) offset
 cVolume		%rb% 1		; channel volume
 cTick		%rb% 1		; channel tick multiplier
-	if FEATURE_DACFMVOLENV=0
-cVolEnv =	%re%		; volume envelope ID. PSG only
-	endif
 cSample =	%re%		; channel sample ID, DAC only
 cVoice		%rb% 1		; YM2612 voice ID. FM only
 cDuration	%rb% 1		; current note duration
@@ -78,10 +68,8 @@ cPortaFreq	%rw% 1		; frequency offset for portamento
 cPortaDisp	%rw% 1		; frequency displacement per frame for portamento
 	endif
 
-	if FEATURE_DACFMVOLENV
 cVolEnv		%rb% 1		; volume envelope ID
 cEnvPos		%rb% 1		; volume envelope position
-	endif
 
 	if FEATURE_MODENV
 cModEnv		%rb% 1		; modulation envelope ID
@@ -99,12 +87,6 @@ cLoop		%rb% 3		; loop counter values
 		%reven%
 cSizeSFX =	%re%		; size of each SFX track (this also sneakily makes sure the memory is aligned to word always. Additional loop counter may be added if last byte is odd byte)
 cPrio =		%re%-1		; sound effect channel priority. SFX only
-
-	if FEATURE_DACFMVOLENV
-cStatPSG4 =	cPanning	; PSG4 type value. PSG3 only
-	else
-cStatPSG4 =	%re%-2		; PSG4 type value. PSG3 only
-	endif
 ; ---------------------------------------------------------------------------
 
 cGateCur	%rb% 1		; number of frames until note-off. Music only
@@ -127,6 +109,7 @@ cfbHold		%rb% 1		; set if note is being held
 cfbMod		%rb% 1		; set if modulation is enabled
 cfbCond		%rb% 1		; set if condition is false
 cfbVol		%rb% 1		; set if channel should update volume
+cfbWater	%rb% 1		; set if underwater mode is disabled
 cfbRun =	$07		; set if channel is running a tracker
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -200,20 +183,20 @@ dPSG =		$C00011		; quick reference to PSG port
 mFlags		%rb% 1		; various driver flags, see below
 mCtrPal		%rb% 1		; frame counter fo 50hz fix
 mComm		%rb% 8		; communications bytes
+mMasterVolPSG	%rb% 1		; master volume for PSG channels
+mMasterVolDAC	%rb% 1		; master volume for DAC channels
 mMasterVolFM =	%re%		; master volume for FM channels
 mFadeAddr	%rl% 1		; fading program address
 mSpeed		%rb% 1		; music speed shoes tempo
 mSpeedAcc	%rb% 1		; music speed shoes tempo accumulator
 mTempo		%rb% 1		; music normal tempo
 mTempoAcc	%rb% 1		; music normal tempo accumulator
-mQueue		%rb% 3		; sound queue
-mMasterVolPSG	%rb% 1		; master volume for PSG channels
 mVctMus		%rl% 1		; address of voice table for music
-mMasterVolDAC	%rb% 1		; master volume for DAC channels
 mSpindash	%rb% 1		; spindash rev counter
 mContCtr	%rb% 1		; continous sfx loop counter
 mContLast	%rb% 1		; last continous sfx played
 mLastCue	%rb% 1		; last YM Cue the sound driver was accessing
+mQueue		%rb% FEATURE_QUEUESIZE; sound queue
 %ralign%
 ; ---------------------------------------------------------------------------
 
@@ -262,6 +245,7 @@ mBackSpeedAcc	%rb% 1		; back-up music speed shoes tempo accumulator
 mBackTempo	%rb% 1		; back-up music normal tempo
 mBackTempoAcc	%rb% 1		; back-up music normal tempo accumulator
 mBackVctMus	%rl% 1		; back-up address of voice table for music
+mBackFlags	%rb% 1		; back-up various driver flags, see below
 	endif
 ; ---------------------------------------------------------------------------
 
