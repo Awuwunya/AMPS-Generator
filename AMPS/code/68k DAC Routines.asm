@@ -5,61 +5,61 @@
 ; ---------------------------------------------------------------------------
 
 dAMPSdoDAC:
-		lea	SampleList(pc),a3	; get SampleList to a3 for quick access
-		lea	mDAC1-cSize.w,a1	; get DAC1 channel RAM address into a1
-		moveq	#Mus_DAC-1,d0		; get total number of DAC channels to d0
+		lea	SampleList(pc),a3			; get SampleList to a3 for quick access
+		lea	mDAC1-cSize.w,a1			; get DAC1 channel RAM address into a1
+		moveq	#Mus_DAC-1,d0				; get total number of DAC channels to d0
 
 dAMPSnextDAC:
-		add.w	#cSize,a1		; go to the next channel (first time its mDAC1!)
-		tst.b	(a1)			; check if channel is running a tracker
-		bpl.w	.next			; if not, branch
-		subq.b	#1,cDuration(a1)	; decrease note duration
-		beq.w	.update			; if timed out, update channel
+		add.w	#cSize,a1				; go to the next channel (first time its mDAC1!)
+		tst.b	(a1)					; check if channel is running a tracker
+		bpl.w	.next					; if not, branch
+		subq.b	#1,cDuration(a1)			; decrease note duration
+		beq.w	.update					; if timed out, update channel
 
-	dGateDAC	 			; handle DAC-specific gate behavior
-	dCalcFreq				; calculate channel base frequency
-	dModPortaWait	dAMPSdoFM, dAMPSnextDAC, 4; run modulation + portamento code
-		bsr.w	dUpdateFreqDAC		; if frequency needs changing, do it
-		bsr.w	dUpdateVolDAC		; update DAC volume
+	dGateDAC			 			; handle DAC-specific gate behavior
+	dCalcFreq						; calculate channel base frequency
+	dModPortaWait	dAMPSdoFM, dAMPSnextDAC, 4		; run modulation + portamento code
+		bsr.w	dUpdateFreqDAC				; if frequency needs changing, do it
+		bsr.w	dUpdateVolDAC				; update DAC volume
 
 .next
-		dbf	d0,dAMPSnextDAC		; make sure to run all the DAC channels
-		jmp	dAMPSdoFM(pc)		; after that, process music FM channels
+		dbf	d0,dAMPSnextDAC				; make sure to run all the DAC channels
+		jmp	dAMPSdoFM(pc)				; after that, process music FM channels
 ; ---------------------------------------------------------------------------
 
 .update
-		and.b	#$FF-(1<<cfbHold)-(1<<cfbRest),(a1); clear hold and res flags
-	dDoTracker				; process tracker
-		tst.b	d1			; check if note is being played
-		bpl.s	.timer			; if not, it must be a timer. Branch
-	dTrackNoteDAC				; calculate frequency or update sample
+		and.b	#$FF-(1<<cfbHold)-(1<<cfbRest),(a1)	; clear hold and res flags
+	dDoTracker						; process tracker
+		tst.b	d1					; check if note is being played
+		bpl.s	.timer					; if not, it must be a timer. Branch
+	dTrackNoteDAC						; calculate frequency or update sample
 
-		move.b	(a2)+,d1		; check if next byte is a timer
-		bpl.s	.timer			; if yes, handle it
-		subq.w	#1,a2			; else, undo the increment
-		bra.s	.pcnote			; do not calculate duration
+		move.b	(a2)+,d1				; check if next byte is a timer
+		bpl.s	.timer					; if yes, handle it
+		subq.w	#1,a2					; else, undo the increment
+		bra.s	.pcnote					; do not calculate duration
 
 .timer
-		jsr	dCalcDuration(pc)	; calculate duration
+		jsr	dCalcDuration(pc)			; calculate duration
 
 .pcnote
-	dProcNote 0, -1				; reset necessary channel memory
-		btst	#cfbRest,(a1)		; check if channel was resting
-		bne.s	.rest			; if yes, we do not want to note on anymore
-		bsr.s	dNoteOnDAC		; do hardware note-on behavior
+	dProcNote 0, -1						; reset necessary channel memory
+		btst	#cfbRest,(a1)				; check if channel was resting
+		bne.s	.rest					; if yes, we do not want to note on anymore
+		bsr.s	dNoteOnDAC				; do hardware note-on behavior
 		bra.s	.ckvol
 ; ---------------------------------------------------------------------------
 
 .rest
-		moveq	#0,d3			; play stop sample
-		bsr.s	dNoteOnDAC2		; ''
+		moveq	#0,d3					; play stop sample
+		bsr.s	dNoteOnDAC2				; ''
 
 .ckvol
-		bsr.w	dUpdateVolDAC		; update DAC volume
+		bsr.w	dUpdateVolDAC				; update DAC volume
 
 .next2
-		dbf	d0,dAMPSnextDAC		; make sure to run all the DAC channels
-		jmp	dAMPSdoFM(pc)		; after that, process FM channels
+		dbf	d0,dAMPSnextDAC				; make sure to run all the DAC channels
+		jmp	dAMPSdoFM(pc)				; after that, process FM channels
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Routine for hardware muting a DAC channel
@@ -74,12 +74,12 @@ dAMPSnextDAC:
 ; ---------------------------------------------------------------------------
 
 dMuteDACmus:
-		btst	#cfbInt,(a1)		; is the channel interrupted by SFX?
-		bne.s	locret_dNoteOnDAC2	; if yes, do not update
+		btst	#cfbInt,(a1)				; is the channel interrupted by SFX?
+		bne.s	locret_dNoteOnDAC2			; if yes, do not update
 
 dMuteDACsfx:
-		move.l	a3,a2			; copy sample table to a2
-		bra.s	dNoteOnDAC5		; continue to play mute sample
+		move.l	a3,a2					; copy sample table to a2
+		bra.s	dNoteOnDAC5				; continue to play mute sample
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Write DAC sample information to Dual PCM
@@ -95,51 +95,51 @@ dMuteDACsfx:
 ; ---------------------------------------------------------------------------
 
 dNoteOnDAC2:
-		btst	#cfbInt,(a1)		; is the channel interrupted by SFX?
-		beq.s	dNoteOnDAC3		; if not, process note
+		btst	#cfbInt,(a1)				; is the channel interrupted by SFX?
+		beq.s	dNoteOnDAC3				; if not, process note
 
 locret_dNoteOnDAC2:
 		rts
 ; ---------------------------------------------------------------------------
 
 dNoteOnDAC:
-		btst	#cfbInt,(a1)		; is the channel interrupted by SFX?
-		bne.s	locret_dNoteOnDAC2	; if so, do not note on or update frequency
+		btst	#cfbInt,(a1)				; is the channel interrupted by SFX?
+		bne.s	locret_dNoteOnDAC2			; if so, do not note on or update frequency
 
-		moveq	#0,d3			; make sure the upper byte is clear
-		move.b	cSample(a1),d3		; get sample ID to d3
-		eor.b	#$80,d3			; this allows us to have the full $100 range safely
+		moveq	#0,d3					; make sure the upper byte is clear
+		move.b	cSample(a1),d3				; get sample ID to d3
+		eor.b	#$80,d3					; this allows us to have the full $100 range safely
 
-		btst	#cfbHold,(a1)		; check if note is held
-		bne.w	dUpdateFreqOffDAC2	; if so, only update frequency
+		btst	#cfbHold,(a1)				; check if note is held
+		bne.w	dUpdateFreqOffDAC2			; if so, only update frequency
 
 dNoteOnDAC3:
-		lsl.w	#4,d3			; multiply sample ID by $10 (size of each entry)
-		lea	(a3,d3.w),a2		; get sample data to a2
-		pea	dUpdateFreqOffDAC(pc)	; update frequency after loading sample
+		lsl.w	#4,d3					; multiply sample ID by $10 (size of each entry)
+		lea	(a3,d3.w),a2				; get sample data to a2
+		pea	dUpdateFreqOffDAC(pc)			; update frequency after loading sample
 ; ---------------------------------------------------------------------------
 
 dNoteOnDAC5:
-		btst	#0,cType(a1)		; check if this channel is DAC1
-		beq.s	dNoteWriteDAC1		; if is, branch
+		btst	#0,cType(a1)				; check if this channel is DAC1
+		beq.s	dNoteWriteDAC1				; if is, branch
 
-		lea	dZ80+PCM2_Sample%laddr%,a5	; load addresses for PCM 1
-		lea	dZ80+PCM2_NewRET%laddr%,a4	; ''
+		lea	dZ80+PCM2_Sample%laddr%,a5			; load addresses for PCM 1
+		lea	dZ80+PCM2_NewRET%laddr%,a4			; ''
 		bra.s	dNoteOnDAC4
 ; ---------------------------------------------------------------------------
 
 dNoteWriteDAC1:
-		lea	dZ80+PCM1_Sample%laddr%,a5	; load addresses for PCM 2
-		lea	dZ80+PCM1_NewRET%laddr%,a4	; ''
+		lea	dZ80+PCM1_Sample%laddr%,a5			; load addresses for PCM 2
+		lea	dZ80+PCM1_NewRET%laddr%,a4			; ''
 
 dNoteOnDAC4:
-	stopZ80					; wait for Z80 to stop
+	stopZ80							; wait for Z80 to stop
 	rept 12
-		move.b	(a2)+,(a5)+		; send sample data to Dual PCM
+		move.b	(a2)+,(a5)+				; send sample data to Dual PCM
 	%endr%
 
-		move.b	#$DA,(a4)		; activate sample switch (change instruction)
-	startZ80				; enable Z80 execution
+		move.b	#$DA,(a4)				; activate sample switch (change instruction)
+	startZ80						; enable Z80 execution
 		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -155,86 +155,86 @@ dNoteOnDAC4:
 ; ---------------------------------------------------------------------------
 
 dUpdateFreqOffDAC2:
-		lsl.w	#4,d3			; multiply sample ID by $10 (size of each entry)
-		lea	$0C(a3,d3.w),a2		; get sample pitch to a2
+		lsl.w	#4,d3					; multiply sample ID by $10 (size of each entry)
+		lea	$0C(a3,d3.w),a2				; get sample pitch to a2
 ; ---------------------------------------------------------------------------
 
 dUpdateFreqOffDAC:
-		move.w	cFreq(a1),d2		; get channel base frequency to d2
-		add.w	(a2)+,d2		; add sample frequency offset to d2
+		move.w	cFreq(a1),d2				; get channel base frequency to d2
+		add.w	(a2)+,d2				; add sample frequency offset to d2
 
-		move.b	cDetune(a1),d3		; get detune value
-		ext.w	d3			; extend to word
-		add.w	d3,d2			; add it to d2
-	dModPortaTrk	4			; run modulation and portamento code
+		move.b	cDetune(a1),d3				; get detune value
+		ext.w	d3					; extend to word
+		add.w	d3,d2					; add it to d2
+	dModPortaTrk	4					; run modulation and portamento code
 		bra.s	dUpdateFreqDAC3
 ; ---------------------------------------------------------------------------
 
 dUpdateFreqDAC:
-		btst	#cfbInt,(a1)		; is the channel interrupted by SFX?
-		bne.s	locret_UpdFreqDAC	; if so, branch
+		btst	#cfbInt,(a1)				; is the channel interrupted by SFX?
+		bne.s	locret_UpdFreqDAC			; if so, branch
 
 dUpdateFreqDAC2:
-		moveq	#0,d3			; make sure the upper byte is clear
-		move.b	cSample(a1),d3		; get sample ID to d3
-		eor.b	#$80,d3			; this allows us to have the full $100 range safely
-		lsl.w	#4,d3			; multiply ID by $10 (size of each entry)
-		add.w	$0C(a3,d3.w),d2		; add sample frequency offset to d2
+		moveq	#0,d3					; make sure the upper byte is clear
+		move.b	cSample(a1),d3				; get sample ID to d3
+		eor.b	#$80,d3					; this allows us to have the full $100 range safely
+		lsl.w	#4,d3					; multiply ID by $10 (size of each entry)
+		add.w	$0C(a3,d3.w),d2				; add sample frequency offset to d2
 ; ---------------------------------------------------------------------------
 
 dUpdateFreqDAC3:
 	if safe=1
-		AMPS_Debug_FreqDAC		; check if DAC frequency is in bounds
+		AMPS_Debug_FreqDAC				; check if DAC frequency is in bounds
 	endif
 
 	if FEATURE_UNDERWATER
-		btst	#cfbWater,(a1)		; check if underwater mode is disabled
-		bne.s	.uwdone			; if yes, skip
-		btst	#mfbWater,mFlags.w	; check if underwater mode is enabled
-		beq.s	.uwdone			; if not, skip
-		moveq	#$C,d3			; prepare frequency displacement to d3
-		tst.w	d2			; check frequency sign
-		bmi.s	.neg			; branch if negative
+		btst	#cfbWater,(a1)				; check if underwater mode is disabled
+		bne.s	.uwdone					; if yes, skip
+		btst	#mfbWater,mFlags.w			; check if underwater mode is enabled
+		beq.s	.uwdone					; if not, skip
+		moveq	#$C,d3					; prepare frequency displacement to d3
+		tst.w	d2					; check frequency sign
+		bmi.s	.neg					; branch if negative
 
-		sub.w	d3,d2			; sub the frequency from actual freq
-		bcc.s	.uwdone			; if no underflow, branch
-		add.w	d3,d2			; add the displacement back (can't really do much atm)
+		sub.w	d3,d2					; sub the frequency from actual freq
+		bcc.s	.uwdone					; if no underflow, branch
+		add.w	d3,d2					; add the displacement back (can't really do much atm)
 		bra.s	.uwdone
 
 .neg
-		add.w	d3,d2			; add the frequency to actual freq
-		bcc.s	.uwdone			; if no underflow, branch
-		add.w	d3,d2			; sub the displacement back (can't really do much atm)
+		add.w	d3,d2					; add the frequency to actual freq
+		bcc.s	.uwdone					; if no underflow, branch
+		add.w	d3,d2					; sub the displacement back (can't really do much atm)
 
 .uwdone
 	endif
 ; ---------------------------------------------------------------------------
 
 	if FEATURE_SOUNDTEST
-		move.w	d2,cChipFreq(a1)	; save frequency to chip
+		move.w	d2,cChipFreq(a1)			; save frequency to chip
 	endif
 
-		move.b	d2,d3			; copy the frequency to d3
-		lsr.w	#8,d2			; get the upper byte to the lower byte
-		btst	#0,cType(a1)		; check if DAC1
-		beq.s	dFreqDAC1		; if is, branch
+		move.b	d2,d3					; copy the frequency to d3
+		lsr.w	#8,d2					; get the upper byte to the lower byte
+		btst	#0,cType(a1)				; check if DAC1
+		beq.s	dFreqDAC1				; if is, branch
 
-	stopZ80					; wait for Z80 to stop
+	stopZ80							; wait for Z80 to stop
 		move.b	d2,dZ80+PCM2_PitchHigh+1%laddr%
 		move.b	d3,dZ80+PCM2_PitchLow+1%laddr%
-		move.b	#$D2,dZ80+PCM2_ChangePitch%laddr%; change "JP C" to "JP NC"
-	startZ80				; enable Z80 execution
+		move.b	#$D2,dZ80+PCM2_ChangePitch%laddr%		; change "JP C" to "JP NC"
+	startZ80						; enable Z80 execution
 
 locret_UpdFreqDAC;
 		rts
 ; ---------------------------------------------------------------------------
 
 dFreqDAC1:
-	stopZ80					; wait for Z80 to stop
+	stopZ80							; wait for Z80 to stop
 		move.b	d2,dZ80+PCM1_PitchHigh+1%laddr%
 		move.b	d3,dZ80+PCM1_PitchLow+1%laddr%
-		move.b	#$D2,dZ80+PCM1_ChangePitch%laddr%; change "JP C" to "JP NC"
-	startZ80				; enable Z80 execution
+		move.b	#$D2,dZ80+PCM1_ChangePitch%laddr%		; change "JP C" to "JP NC"
+	startZ80						; enable Z80 execution
 		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -243,55 +243,55 @@ dFreqDAC1:
 
 dAMPSdoSFX:
 dAMPSdoDACSFX:
-		lea	mSFXDAC1.w,a1		; get SFX DAC1 channel RAM address into a1
-		tst.b	(a1)			; check if channel is running a tracker
-		bpl.w	.next			; if not, branch
+		lea	mSFXDAC1.w,a1				; get SFX DAC1 channel RAM address into a1
+		tst.b	(a1)					; check if channel is running a tracker
+		bpl.w	.next					; if not, branch
 
-		lea	SampleList(pc),a3	; get SampleList to a3 for quick access
-		subq.b	#1,cDuration(a1)	; decrease note duration
-		beq.w	.update			; if timed out, update channel
+		lea	SampleList(pc),a3			; get SampleList to a3 for quick access
+		subq.b	#1,cDuration(a1)			; decrease note duration
+		beq.w	.update					; if timed out, update channel
 
-	dCalcFreq				; calculate channel base frequency
-	dModPortaWait	dAMPSdoFMSFX, dAMPSdoFMSFX, 5; run modulation + portamento code
-		bsr.w	dUpdateFreqDAC2		; if frequency needs changing, do it
-		bsr.w	dUpdateVolDAC_SFX	; update DAC volume
+	dCalcFreq						; calculate channel base frequency
+	dModPortaWait	dAMPSdoFMSFX, dAMPSdoFMSFX, 5		; run modulation + portamento code
+		bsr.w	dUpdateFreqDAC2				; if frequency needs changing, do it
+		bsr.w	dUpdateVolDAC_SFX			; update DAC volume
 
 .next
-		jmp	dAMPSdoFMSFX(pc)	; after that, process SFX FM channels
+		jmp	dAMPSdoFMSFX(pc)			; after that, process SFX FM channels
 ; ---------------------------------------------------------------------------
 
 .update
-		and.b	#$FF-(1<<cfbHold),(a1)	; clear hold flag
-	dDoTracker				; process tracker
-		tst.b	d1			; check if note is being played
-		bpl.s	.timer			; if not, it must be a timer. Branch
-	dTrackNoteDAC				; calculate frequency or update sample
+		and.b	#$FF-(1<<cfbHold),(a1)			; clear hold flag
+	dDoTracker						; process tracker
+		tst.b	d1					; check if note is being played
+		bpl.s	.timer					; if not, it must be a timer. Branch
+	dTrackNoteDAC						; calculate frequency or update sample
 
-		move.b	(a2)+,d1		; check if next byte is a timer
-		bpl.s	.timer			; if yes, handle it
-		subq.w	#1,a2			; else, undo the increment
-		bra.s	.pcnote			; do not calculate duration
+		move.b	(a2)+,d1				; check if next byte is a timer
+		bpl.s	.timer					; if yes, handle it
+		subq.w	#1,a2					; else, undo the increment
+		bra.s	.pcnote					; do not calculate duration
 
 .timer
-		jsr	dCalcDuration(pc)	; calculate duration
+		jsr	dCalcDuration(pc)			; calculate duration
 
 .pcnote
-	dProcNote 1, -1				; reset necessary channel memory
-		btst	#cfbRest,(a1)		; check if channel was resting
-		bne.s	.rest			; if yes, we do not want to note on anymore
-		bsr.w	dNoteOnDAC		; do hardware note-on behavior
+	dProcNote 1, -1						; reset necessary channel memory
+		btst	#cfbRest,(a1)				; check if channel was resting
+		bne.s	.rest					; if yes, we do not want to note on anymore
+		bsr.w	dNoteOnDAC				; do hardware note-on behavior
 		bra.s	.ckvol
 ; ---------------------------------------------------------------------------
 
 .rest
-		moveq	#0,d3			; play stop sample
-		bsr.w	dNoteOnDAC2		; ''
+		moveq	#0,d3					; play stop sample
+		bsr.w	dNoteOnDAC2				; ''
 
 .ckvol
-		bsr.s	dUpdateVolDAC_SFX	; update DAC volume
+		bsr.s	dUpdateVolDAC_SFX			; update DAC volume
 
 .next2
-		jmp	dAMPSdoFMSFX(pc)	; after that, process SFX FM channels
+		jmp	dAMPSdoFMSFX(pc)			; after that, process SFX FM channels
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Write DAC volume to Dual PCM
@@ -306,71 +306,71 @@ dAMPSdoDACSFX:
 
 dUpdateVolDAC_SFX:
 	if FEATURE_SFX_MASTERVOL=0
-		move.b	cVolume(a1),d1		; get channel volume to d1
-		ext.w	d1			; extend to a word
-		bra.s	dUpdateVolDAC3		; do not add master volume
+		move.b	cVolume(a1),d1				; get channel volume to d1
+		ext.w	d1					; extend to a word
+		bra.s	dUpdateVolDAC3				; do not add master volume
 	endif
 ; ---------------------------------------------------------------------------
 
 dUpdateVolDAC:
-		move.b	mMasterVolDAC.w,d1	; load DAC master volume to d1
-		ext.w	d1			; extend to word
+		move.b	mMasterVolDAC.w,d1			; load DAC master volume to d1
+		ext.w	d1					; extend to word
 
-		move.b	cVolume(a1),d4		; load channel volume to d4
-		ext.w	d4			; extend to word
-		add.w	d4,d1			; add channel volume to d1
+		move.b	cVolume(a1),d4				; load channel volume to d4
+		ext.w	d4					; extend to word
+		add.w	d4,d1					; add channel volume to d1
 
 dUpdateVolDAC3:
 		moveq	#0,d4
-		move.b	cVolEnv(a1),d4		; load volume envelope ID to d4
-		beq.s	.ckflag			; if 0, check if volume update was needed
+		move.b	cVolEnv(a1),d4				; load volume envelope ID to d4
+		beq.s	.ckflag					; if 0, check if volume update was needed
 
-		jsr	dVolEnvProg(pc)		; run the envelope program
-		bne.s	dUpdateVolDAC2		; if it was necessary to update volume, do so
+		jsr	dVolEnvProg(pc)				; run the envelope program
+		bne.s	dUpdateVolDAC2				; if it was necessary to update volume, do so
 
 .ckflag
-		btst	#cfbVol,cType(a1)	; test volume update flag
-		beq.s	locret_VolDAC		; branch if no volume update was requested
+		btst	#cfbVol,cType(a1)			; test volume update flag
+		beq.s	locret_VolDAC				; branch if no volume update was requested
 ; ---------------------------------------------------------------------------
 
 dUpdateVolDAC2:
-		and.w	#$FFFF-(1<<cfbVol),(a1)	; clear volume update flag
-		btst	#cfbInt,(a1)		; is the channel interrupted by SFX?
-		bne.s	locret_VolDAC		; if yes, do not update
+		and.w	#$FFFF-(1<<cfbVol),(a1)			; clear volume update flag
+		btst	#cfbInt,(a1)				; is the channel interrupted by SFX?
+		bne.s	locret_VolDAC				; if yes, do not update
 
 	if FEATURE_UNDERWATER
-		btst	#cfbWater,(a1)		; check if underwater mode is disabled
-		bne.s	.uwdone			; if yes, skip
-		btst	#mfbWater,mFlags.w	; check if underwater mode is enabled
-		sne	d2			; if yes, set d2
-		and.b	#4,d2			; volume offset is either 0 or 4
-		add.b	d2,d1			; add to volume
+		btst	#cfbWater,(a1)				; check if underwater mode is disabled
+		bne.s	.uwdone					; if yes, skip
+		btst	#mfbWater,mFlags.w			; check if underwater mode is enabled
+		sne	d2					; if yes, set d2
+		and.b	#4,d2					; volume offset is either 0 or 4
+		add.b	d2,d1					; add to volume
 	endif
 
 .uwdone
-		cmp.w	#$80,d1			; check if volume is out of range
-		bls.s	.nocap			; if not, branch
-		spl	d1			; if positive (above $7F), set to $FF. Otherwise, set to $00
-		and.b	#$80,d1			; change volume of $FF to $80 (this mutes DAC)
+		cmp.w	#$80,d1					; check if volume is out of range
+		bls.s	.nocap					; if not, branch
+		spl	d1					; if positive (above $7F), set to $FF. Otherwise, set to $00
+		and.b	#$80,d1					; change volume of $FF to $80 (this mutes DAC)
 
 .nocap
 	if FEATURE_SOUNDTEST
-		move.b	d1,cChipVol(a1)		; save volume to chip
+		move.b	d1,cChipVol(a1)				; save volume to chip
 	endif
 
-	stopZ80					; wait for Z80 to stop
-		move.b	#$D2,dZ80+PCM_ChangeVolume%laddr%; set volume change flag
+	stopZ80							; wait for Z80 to stop
+		move.b	#$D2,dZ80+PCM_ChangeVolume%laddr%		; set volume change flag
 
-		btst	#0,cType(a1)		; check if this channel is DAC1
-		beq.s	.dac1			; if is, branch
-		move.b	d1,dZ80+PCM2_Volume+1%laddr%	; save volume for PCM 2
-	startZ80				; enable Z80 execution
+		btst	#0,cType(a1)				; check if this channel is DAC1
+		beq.s	.dac1					; if is, branch
+		move.b	d1,dZ80+PCM2_Volume+1%laddr%			; save volume for PCM 2
+	startZ80						; enable Z80 execution
 		rts
 ; ---------------------------------------------------------------------------
 
 .dac1
-		move.b	d1,dZ80+PCM1_Volume+1%laddr%	; save volume for PCM 1
-	startZ80				; enable Z80 execution
+		move.b	d1,dZ80+PCM1_Volume+1%laddr%			; save volume for PCM 1
+	startZ80						; enable Z80 execution
 
 locret_VolDAC:
 		rts

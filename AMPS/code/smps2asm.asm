@@ -188,7 +188,7 @@ spAM4 %set%		%macpfx%op4
 
 ; Patches - Sustain Rate
 spSustainRt	macro op1,op2,op3,op4
-spSR1 %set%		%macpfx%op1		; Also known as decay 1 rate
+spSR1 %set%		%macpfx%op1				; Also known as decay 1 rate
 spSR2 %set%		%macpfx%op2
 spSR3 %set%		%macpfx%op3
 spSR4 %set%		%macpfx%op4
@@ -196,7 +196,7 @@ spSR4 %set%		%macpfx%op4
 
 ; Patches - Sustain Level
 spSustainLv	macro op1,op2,op3,op4
-spSL1 %set%		%macpfx%op1		; also known as decay 1 level
+spSL1 %set%		%macpfx%op1				; also known as decay 1 level
 spSL2 %set%		%macpfx%op2
 spSL3 %set%		%macpfx%op3
 spSL4 %set%		%macpfx%op4
@@ -204,7 +204,7 @@ spSL4 %set%		%macpfx%op4
 
 ; Patches - Decay Rate
 spDecayRt	macro op1,op2,op3,op4
-spDR1 %set%		%macpfx%op1		; Also known as decay 2 rate
+spDR1 %set%		%macpfx%op1				; Also known as decay 2 rate
 spDR2 %set%		%macpfx%op2
 spDR3 %set%		%macpfx%op3
 spDR4 %set%		%macpfx%op4
@@ -253,7 +253,7 @@ spTLMask1 %set%	((spAl=7)<<7)
 	dc.b spTL1|spTLMask1,  spTL3|spTLMask3,  spTL2|spTLMask2,  spTL4|spTLMask4
 
 	if safe=1
-		dc.b "NAT"	; align the patch
+		dc.b "NAT"					; align the patch
 	endif
     endm
 
@@ -274,7 +274,7 @@ spTL4 %set%		%macpfx%op4
 	dc.b spTL1,	       spTL3,		 spTL2,		   spTL4
 
 	if safe=1
-		dc.b "NAT"	; align the patch
+		dc.b "NAT"					; align the patch
 	endif
     endm
 ; ===========================================================================
@@ -582,12 +582,12 @@ sCheck		macro
 ; ---------------------------------------------------------------------------
 
 %ifasm% AS
-	enum snOff=$00			; disables PSG3 noise mode.
+	enum snOff=$00						; disables PSG3 noise mode.
 	enum snPeri10=$E0,snPeri20,snPeri40,snPeriPSG3
 	enum snWhite10=$E4,snWhite20,snWhite40,snWhitePSG3
 %endif%
 %ifasm% ASM68K
-snOff =		$00			; disables PSG3 noise mode.
+snOff =		$00						; disables PSG3 noise mode.
 _num =		$E0
 	enum snPeri10, snPeri20, snPeri40, snPeriPSG3
 	enum snWhite10,snWhite20,snWhite40,snWhitePSG3

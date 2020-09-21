@@ -84,44 +84,44 @@ dFadeInDataLog:
 ; ---------------------------------------------------------------------------
 
 dPlaySnd_FadeOut:
-		lea	dFadeOutDataLog(pc),a4	; prepare stock fade out program to a4
+		lea	dFadeOutDataLog(pc),a4			; prepare stock fade out program to a4
 ; ---------------------------------------------------------------------------
 
 dLoadFade:
 	if safe=1
-		AMPS_Debug_FadeAddr		; check whether this fade address is valid
+		AMPS_Debug_FadeAddr				; check whether this fade address is valid
 	endif
 
-		move.b	mMasterVolFM.w,d3	; load FM master volume to d3
-		tst.b	mFadeAddr+1.w		; check if a fade program is already executing
-		beq.s	.nofade			; if not, load fade as is
+		move.b	mMasterVolFM.w,d3			; load FM master volume to d3
+		tst.b	mFadeAddr+1.w				; check if a fade program is already executing
+		beq.s	.nofade					; if not, load fade as is
 
-		move.l	a4,a5			; copy fade program address to a5
-		moveq	#-1,d5			; prepare max byter difference
+		move.l	a4,a5					; copy fade program address to a5
+		moveq	#-1,d5					; prepare max byter difference
 
 .find
-		move.b	(a5),d4			; load the next FM volume from fade program
-		bpl.s	.search			; branch if this is not a command
+		move.b	(a5),d4					; load the next FM volume from fade program
+		bpl.s	.search					; branch if this is not a command
 
 .nofade
-		move.l	a4,mFadeAddr.w		; save new fade program address to memory
-		move.b	d3,mMasterVolFM.w	; put vol back
+		move.l	a4,mFadeAddr.w				; save new fade program address to memory
+		move.b	d3,mMasterVolFM.w			; put vol back
 		rts
 ; ---------------------------------------------------------------------------
 
 .search
-		addq.l	#3,a5			; skip over the current volume group
-		sub.b	d3,d4			; sub current FM volume from read volume
-		bpl.s	.abs			; if positive, do not negate
-		neg.b	d4			; negative to positive
+		addq.l	#3,a5					; skip over the current volume group
+		sub.b	d3,d4					; sub current FM volume from read volume
+		bpl.s	.abs					; if positive, do not negate
+		neg.b	d4					; negative to positive
 
 .abs
-		cmp.b	d5,d4			; check if volume difference was smaller than before
-		bhs.s	.find			; if not, read next group
+		cmp.b	d5,d4					; check if volume difference was smaller than before
+		bhs.s	.find					; if not, read next group
 
-		move.b	d4,d5			; else save the new difference
-		move.l	a5,a4			; also save the fade program address right after the checked value
-		bra.s	.find			; loop through each group in the program
+		move.b	d4,d5					; else save the new difference
+		move.l	a5,a4					; also save the fade program address right after the checked value
+		bra.s	.find					; loop through each group in the program
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Routine for loading a volume filter bank into Dual PCM memory
@@ -138,9 +138,9 @@ dLoadFade:
 ; ---------------------------------------------------------------------------
 
 dSetFilter:
-		lea	dZ80+SV_VolumeBank%laddr%,a4	; load volume bank instructions address to a4
-		moveq	#$74,d5			; prepare the "ld  (hl),h" instruction to d5
-	stopZ80					; wait for Z80 to stop
+		lea	dZ80+SV_VolumeBank%laddr%,a4			; load volume bank instructions address to a4
+		moveq	#$74,d5					; prepare the "ld  (hl),h" instruction to d5
+	stopZ80							; wait for Z80 to stop
 ; ---------------------------------------------------------------------------
 ; addx in Motorola 68000 is much like adc in Z80. It allows us to add
 ; a register AND the carry to another register. What this means, is if
@@ -151,13 +151,13 @@ dSetFilter:
 ; ---------------------------------------------------------------------------
 
 	rept 8
-		moveq	#0,d6			; prepare 0 into d6 (because of addx)
-		lsr.b	#1,d4			; shift lsb of bank address into carry
-		addx.b	d5,d6			; add instruction and carry into d6
-		move.b	d6,(a4)+		; save instruction into Z80 memory
+		moveq	#0,d6					; prepare 0 into d6 (because of addx)
+		lsr.b	#1,d4					; shift lsb of bank address into carry
+		addx.b	d5,d6					; add instruction and carry into d6
+		move.b	d6,(a4)+				; save instruction into Z80 memory
 	%endr%
 
-	startZ80				; enable Z80 execution
+	startZ80						; enable Z80 execution
 
 locret_SetFilter:
 		rts
@@ -175,60 +175,60 @@ locret_SetFilter:
 ; ---------------------------------------------------------------------------
 
 dCalcDuration:
-		moveq	#0,d6			; clear duration
-		moveq	#0,d5			; clear upper bytes (for dbf)
-		move.b	cTick(a1),d5		; get tick multiplier to d5
+		moveq	#0,d6					; clear duration
+		moveq	#0,d5					; clear upper bytes (for dbf)
+		move.b	cTick(a1),d5				; get tick multiplier to d5
 
 .multiply
-		add.b	d1,d6			; add duration value to d6
-		dbf	d5,.multiply		; multiply by tick rate
+		add.b	d1,d6					; add duration value to d6
+		dbf	d5,.multiply				; multiply by tick rate
 
-		move.b	d6,cLastDur(a1)		; save as the new last duration
-		rts				; get copied to duration by code later
+		move.b	d6,cLastDur(a1)				; save as the new last duration
+		rts						; get copied to duration by code later
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Handle Dual PCM YM Cue correctly
 ; ---------------------------------------------------------------------------
 
 UpdateAMPS:
-		bset	#mfbExec,mFlags.w	; check if AMPS is already running, and set flag
-		bne.s	.rts			; if is, DO NOT run it again
-		moveq	#4-1,d1			; check Dual PCM status max 4 times
+		bset	#mfbExec,mFlags.w			; check if AMPS is already running, and set flag
+		bne.s	.rts					; if is, DO NOT run it again
+		moveq	#4-1,d1					; check Dual PCM status max 4 times
 
 .recheck
-	stopZ80					; wait for Z80 to stop
-		move.b	dZ80+YM_Buffer,d0	; load current cue buffer in use
-	startZ80				; enable Z80 execution
+	stopZ80							; wait for Z80 to stop
+		move.b	dZ80+YM_Buffer,d0			; load current cue buffer in use
+	startZ80						; enable Z80 execution
 
-		cmp.b	mLastCue.w,d0		; check if last cue was the same
-		bne.s	.bufferok		; if it is same, Dual PCM is delayed and its baaad =(
+		cmp.b	mLastCue.w,d0				; check if last cue was the same
+		bne.s	.bufferok				; if it is same, Dual PCM is delayed and its baaad =(
 
-		moveq	#$20-1,d0		; loop for $20 times
-		dbf	d0,*			; in place, to wait for Dual PCM maybe! =I
-		dbf	d1,.recheck		; if we still have cycles to check, do it
-		bclr	#mfbExec,mFlags.w	; set AMPS as not running
+		moveq	#$20-1,d0				; loop for $20 times
+		dbf	d0,*					; in place, to wait for Dual PCM maybe! =I
+		dbf	d1,.recheck				; if we still have cycles to check, do it
+		bclr	#mfbExec,mFlags.w			; set AMPS as not running
 
 .rts
-		rts				; fuck it, Dual PCM does not want to cooperate
+		rts						; fuck it, Dual PCM does not want to cooperate
 ; ---------------------------------------------------------------------------
 
 .bufferok
-		move.b	d0,mLastCue.w		; update the last cue
-		move.l	#dZ80+YM_Buffer1,a0	; set the cue address to buffer 1
-		tst.b	d0			; check buffer to use
-		bne.s	.gotbuffer		; if Z80 is reading buffer 2, branch
-		add.w	#YM_Buffer2-YM_Buffer1,a0; set the cue address to buffer 2
+		move.b	d0,mLastCue.w				; update the last cue
+		move.l	#dZ80+YM_Buffer1,a0			; set the cue address to buffer 1
+		tst.b	d0					; check buffer to use
+		bne.s	.gotbuffer				; if Z80 is reading buffer 2, branch
+		add.w	#YM_Buffer2-YM_Buffer1,a0		; set the cue address to buffer 2
 
 .gotbuffer
-		bsr.w	dUpdateAllAMPS		; process the driver
-	if safe=1				; this must always happen at the end
-		AMPS_Debug_CuePtr 3		; check if the cue is still valid
+		bsr.w	dUpdateAllAMPS				; process the driver
+	if safe=1						; this must always happen at the end
+		AMPS_Debug_CuePtr 3				; check if the cue is still valid
 	endif
 
-	stopZ80					; wait for Z80 to stop
-		st	(a0)			; make sure cue is marked as completed
-	startZ80				; enable Z80 execution
-		bclr	#mfbExec,mFlags.w	; set AMPS as not running
+	stopZ80							; wait for Z80 to stop
+		st	(a0)					; make sure cue is marked as completed
+	startZ80						; enable Z80 execution
+		bclr	#mfbExec,mFlags.w			; set AMPS as not running
 
 dPaused:
 		rts
@@ -238,9 +238,9 @@ dPaused:
 ; ---------------------------------------------------------------------------
 
 dUpdateAllAMPS:
-		jsr	dPlaySnd(pc)		; check if any music needs playing
-		tst.b	mFlags.w		; is music paused?
-		bmi.s	dPaused			; if yes, branch
+		jsr	dPlaySnd(pc)				; check if any music needs playing
+		tst.b	mFlags.w				; is music paused?
+		bmi.s	dPaused					; if yes, branch
 ; ---------------------------------------------------------------------------
 ; This is the new fading feature I created, to make custom fading
 ; types easier to program. You can define series of 3 bytes, each
@@ -251,72 +251,72 @@ dUpdateAllAMPS:
 ; ---------------------------------------------------------------------------
 
 .notempo
-		tst.b	mFadeAddr+1.w		; check if a fade program is already executing
+		tst.b	mFadeAddr+1.w				; check if a fade program is already executing
 	if safe=1
-		beq.w	.checkspeed		; branch if not
+		beq.w	.checkspeed				; branch if not
 	else
-		beq.s	.checkspeed		; branch if not
+		beq.s	.checkspeed				; branch if not
 	endif
 
-		move.l	mFadeAddr.w,a4		; get the fade porogram address to a4
-		addq.l	#3,mFadeAddr.w		; set the fade address to next group
+		move.l	mFadeAddr.w,a4				; get the fade porogram address to a4
+		addq.l	#3,mFadeAddr.w				; set the fade address to next group
 	if safe=1
-		AMPS_Debug_FadeAddr		; check whether this fade address is valid
+		AMPS_Debug_FadeAddr				; check whether this fade address is valid
 	endif
 
 		moveq	#0,d2
-		move.b	(a4)+,d2		; get FM/command byte from fade data
-		bpl.s	.nofadeend		; branch if this is not a command
+		move.b	(a4)+,d2				; get FM/command byte from fade data
+		bpl.s	.nofadeend				; branch if this is not a command
 
 	if safe=1
-		AMPS_Debug_FadeCmd		; check if this command is valid
+		AMPS_Debug_FadeCmd				; check if this command is valid
 	endif
-		lea	dFadeCommands(pc),a3	; load fade commands pointer table to a3
-		jsr	-$80(a3,d2.w)		; run the fade command code
-		clr.b	mFadeAddr+1.w		; mark the fade program as completed
-		bra.s	.checkspeed		; go check the region
+		lea	dFadeCommands(pc),a3			; load fade commands pointer table to a3
+		jsr	-$80(a3,d2.w)				; run the fade command code
+		clr.b	mFadeAddr+1.w				; mark the fade program as completed
+		bra.s	.checkspeed				; go check the region
 ; ---------------------------------------------------------------------------
 
 .nofadeend
-		cmp.b	mMasterVolFM.w,d2	; check if volume changed
-		beq.s	.fadedac		; if did not, branch
-		move.b	d2,mMasterVolFM.w	; save the new volume
+		cmp.b	mMasterVolFM.w,d2			; check if volume changed
+		beq.s	.fadedac				; if did not, branch
+		move.b	d2,mMasterVolFM.w			; save the new volume
 
 	if FEATURE_SFX_MASTERVOL
-		jsr	dReqVolUpFM(pc)		; go request volume update for FM
+		jsr	dReqVolUpFM(pc)				; go request volume update for FM
 	else
-		jsr	dReqVolUpMusicFM(pc)	; only request music channels to update
+		jsr	dReqVolUpMusicFM(pc)			; only request music channels to update
 	endif
 ; ---------------------------------------------------------------------------
 
 .fadedac
-		move.b	(a4)+,d2		; get DAC volume byte from fade data
-		cmp.b	mMasterVolDAC.w,d2	; check if volume changed
-		beq.s	.fadepsg		; if did not, branch
-		move.b	d2,mMasterVolDAC.w	; save new volume
-		moveq	#1<<cfbVol,d0		; prepare volume update to d0
+		move.b	(a4)+,d2				; get DAC volume byte from fade data
+		cmp.b	mMasterVolDAC.w,d2			; check if volume changed
+		beq.s	.fadepsg				; if did not, branch
+		move.b	d2,mMasterVolDAC.w			; save new volume
+		moveq	#1<<cfbVol,d0				; prepare volume update to d0
 
-.ch %set%	mDAC1+cType				; start at DAC1
-	rept Mus_DAC				; do for all music DAC channels
-		or.b	d0,.ch.w		; tell the channel to update its volume
-.ch %set%		.ch+cSize			; go to next channel
+.ch %set%	mDAC1+cType						; start at DAC1
+	rept Mus_DAC						; do for all music DAC channels
+		or.b	d0,.ch.w				; tell the channel to update its volume
+.ch %set%		.ch+cSize					; go to next channel
 	%endr%
 
 	if FEATURE_SFX_MASTERVOL
-		or.b	d0,mSFXDAC1+cType.w	; tell SFX DAC1 to update its volume
+		or.b	d0,mSFXDAC1+cType.w			; tell SFX DAC1 to update its volume
 	endif
 ; ---------------------------------------------------------------------------
 
 .fadepsg
-		move.b	(a4)+,d2		; get PSG volume byte from fade data
-		cmp.b	mMasterVolPSG.w,d2	; check if volume changed
-		beq.s	.checkspeed		; if did not, branch
-		move.b	d2,mMasterVolPSG.w	; save new volume
+		move.b	(a4)+,d2				; get PSG volume byte from fade data
+		cmp.b	mMasterVolPSG.w,d2			; check if volume changed
+		beq.s	.checkspeed				; if did not, branch
+		move.b	d2,mMasterVolPSG.w			; save new volume
 
 	if FEATURE_SFX_MASTERVOL
-		jsr	dReqVolUpPSG(pc)	; go request volume update for PSG
+		jsr	dReqVolUpPSG(pc)			; go request volume update for PSG
 	else
-		jsr	dReqVolUpMusicPSG(pc)	; only request music channels to update
+		jsr	dReqVolUpMusicPSG(pc)			; only request music channels to update
 	endif
 ; ---------------------------------------------------------------------------
 ; This piece of code is used to emulate the Sonic 3 & Knuckles speed
@@ -328,14 +328,14 @@ dUpdateAllAMPS:
 ; ---------------------------------------------------------------------------
 
 .checkspeed
-		jsr	dAMPSdoSFX(pc)		; run SFX before anything
-		btst	#mfbSpeed,mFlags.w	; check speed shoes flag
-		beq.s	.chkregion		; if not enabled, branch
+		jsr	dAMPSdoSFX(pc)				; run SFX before anything
+		btst	#mfbSpeed,mFlags.w			; check speed shoes flag
+		beq.s	.chkregion				; if not enabled, branch
 
-		move.b	mSpeed.w,d3		; get tempo to d3
-		add.b	d3,mSpeedAcc.w		; add to accumulator
-		bcc.s	.chkregion		; if carry clear, branch
-		bset	#mfbRunTwice,mFlags.w	; enable run twice flag
+		move.b	mSpeed.w,d3				; get tempo to d3
+		add.b	d3,mSpeedAcc.w				; add to accumulator
+		bcc.s	.chkregion				; if carry clear, branch
+		bset	#mfbRunTwice,mFlags.w			; enable run twice flag
 ; ---------------------------------------------------------------------------
 ; Since PAL Mega Drive's run slower than NTSC, if we want the music to
 ; sound consistent, we need to run the sound driver 1.2 times as fast
@@ -347,14 +347,14 @@ dUpdateAllAMPS:
 ; ---------------------------------------------------------------------------
 
 .chkregion
-		btst	#mfbNoPAL,mFlags.w	; check if we have disabled the PAL fix
-		bne.s	.driver			; if yes, skip
-		subq.b	#1,mCtrPal.w		; decrease PAL frame counter
-		bgt.s	.driver			; if hasn't become 0 (or lower!), branch
-		bsr.s	.driver			; run the sound driver
+		btst	#mfbNoPAL,mFlags.w			; check if we have disabled the PAL fix
+		bne.s	.driver					; if yes, skip
+		subq.b	#1,mCtrPal.w				; decrease PAL frame counter
+		bgt.s	.driver					; if hasn't become 0 (or lower!), branch
+		bsr.s	.driver					; run the sound driver
 
 .nofix
-		move.b	#6-1,mCtrPal.w		; reset counter
+		move.b	#6-1,mCtrPal.w				; reset counter
 
 .driver
 	; continue to run sound driver again
@@ -372,16 +372,16 @@ dUpdateAllAMPS:
 ; better. You may choose this setting in the macro.asm file.
 ; ---------------------------------------------------------------------------
 
-		move.b	mTempo.w,d3		; get tempo to d3
-		add.b	d3,mTempoAcc.w		; add to accumulator
-		bcc.s	dAMPSdoDAC		; if carry clear, branch
+		move.b	mTempo.w,d3				; get tempo to d3
+		add.b	d3,mTempoAcc.w				; add to accumulator
+		bcc.s	dAMPSdoDAC				; if carry clear, branch
 
-		bclr	#mfbRunTwice,mFlags.w	; clear run twice flag
-		bne.s	dAMPSdoDAC		; if was set before, save a bit of time
+		bclr	#mfbRunTwice,mFlags.w			; clear run twice flag
+		bne.s	dAMPSdoDAC				; if was set before, save a bit of time
 
-.ch %set%	mDAC1+cDuration				; start at DAC1 duration
-	rept Mus_Ch				; loop through all music channels
-		addq.b	#1,.ch.w		; add 1 to duration
-.ch %set%		.ch+cSize			; go to next channel
+.ch %set%	mDAC1+cDuration						; start at DAC1 duration
+	rept Mus_Ch						; loop through all music channels
+		addq.b	#1,.ch.w				; add 1 to duration
+.ch %set%		.ch+cSize					; go to next channel
 	%endr%
 ; ---------------------------------------------------------------------------

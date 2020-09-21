@@ -4,7 +4,7 @@
 ;
 ; ---------------------------------------------------------------------------
 
-	if safe=1	; all of this code is only required in safe mode!
+	if safe=1						; all of this code is only required in safe mode!
 %ifasm% AS
 		ifndef isAMPS
 %endif%
@@ -18,7 +18,7 @@
 ; write channel string to console
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_Debug_GetChannel	macro
 	cmp.w	#mPSG1,a1
 	bne.s	.cpsg2
@@ -133,7 +133,7 @@ AMPS_Debug_GetChannel	macro
 ; Channel console code
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_Debug_Console_Channel:
 	Console.WriteLine "  %<pal0>d0: %<pal2>%<.l d0>  %<pal0>a0: %<pal2>%<.l a0>"
 	Console.WriteLine "  %<pal0>d1: %<pal2>%<.l d1>  %<pal0>a1: %<pal2>%<.l a1>"
@@ -296,7 +296,7 @@ AMPS_Debug_Console_Channel:
 ; Generic console code
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_Debug_Console_Main:
 	Console.WriteLine "  %<pal0>d0: %<pal2>%<.l d0>  %<pal0>a0: %<pal2>%<.l a0>"
 	Console.WriteLine "  %<pal0>d1: %<pal2>%<.l d1>  %<pal0>a1: %<pal2>%<.l a1>"
