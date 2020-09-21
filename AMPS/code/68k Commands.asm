@@ -12,9 +12,9 @@
 dCommands:
 		add.b	d1,d1			; quadruple command ID
 		add.b	d1,d1			; since each entry is 4 bytes large
-		btst	#cfbCond,(a1)		; check if condition state
+		btst	#cfbCond,cType(a1)	; check if condition state
 		bne.w	.falsecomm		; branch if false
-%pcreldef% .whyyy .comm-$80			; AS is ASS
+%pcreldef% .whyyy .comm-$70			; AS is ASS
 		jmp	%pcrelref%(pc,d1.w)%at%	; jump to appropriate handler
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -22,6 +22,10 @@ dCommands:
 ; ---------------------------------------------------------------------------
 
 .comm
+		bra.w	*			; DC - Null
+		bra.w	*			; DD - Null
+		bra.w	*			; DE - Null
+		bra.w	*			; DF - Null
 		bra.w	dcPan			; E0 - Panning, AMS, FMS (PANAFMS - PAFMS_PAN)
 		bra.w	dcsDetune		; E1 - Set channel frequency displacement to xx (DETUNE_SET)
 		bra.w	dcaDetune		; E2 - Add xx to channel frequency displacement (DETUNE)
@@ -64,7 +68,7 @@ dCommands:
 		jmp	.meta(pc,d1.w)		; jump to appropriate meta handler
 
 .falsecomm
-%pcreldef% .awman .false-$80			; AS is ASS
+%pcreldef% .awman .false-$70			; AS is ASS
 		jmp	%pcrelref%(pc,d1.w)%at%	; jump to appropriate handler (false command)
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -108,6 +112,10 @@ dcskip	macro amount
    endm
 
 .false
+		bra.w	*			; DC - Null
+		bra.w	*			; DD - Null
+		bra.w	*			; DE - Null
+		bra.w	*			; DF - Null
 		dcskip	1			; E0 - Panning, AMS, FMS (PANAFMS - PAFMS_PAN)
 		dcskip	1			; E1 - Set channel frequency displacement to xx (DETUNE_SET)
 		dcskip	1			; E2 - Add xx to channel frequency displacement (DETUNE)
@@ -180,8 +188,9 @@ dcPan:
 		or.b	(a2)+,d3		; OR panning value
 		move.b	d3,cPanning(a1)		; save as channel panning
 
-		btst	#ctbDAC,cType(a1)	; check if this is a DAC channel
-		bne.s	.dac			; if yes, branch
+		moveq	#ctChkType,d4		; load channel bits check to d4
+		and.w	(a1),d4			; AND with channel type bits
+		beq.s	.dac			; branch if DAC
 		btst	#cfbInt,(a1)		; check if interrupted by SFX
 		bne.s	.rts			; if yes, do not update
 
@@ -235,13 +244,13 @@ dcsDetune:
 dcaVolume:
 		move.b	(a2)+,d3		; load volume from tracker
 		add.b	d3,cVolume(a1)		; add to channel volume
-		bset	#cfbVol,(a1)		; set volume update flag
+		or.w	#1<<cfbVol,(a1)		; set volume update flag
 		rts
 ; ---------------------------------------------------------------------------
 
 dcsVolume:
 		move.b	(a2)+,cVolume(a1)	; load volume from tracker to channel
-		bset	#cfbVol,(a1)		; set volume update flag
+		or.w	#1<<cfbVol,(a1)		; set volume update flag
 		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -250,7 +259,7 @@ dcsVolume:
 
 dcSampDAC:
 		move.w	#$100,cFreq(a1)		; reset to default base frequency
-		bclr	#cfbMode,(a1)		; enable sample mode
+		bclr	#cfbMode,cFlags(a1)	; enable sample mode
 		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -258,7 +267,7 @@ dcSampDAC:
 ; ---------------------------------------------------------------------------
 
 dcPitchDAC:
-		bset	#cfbMode,(a1)		; enable pitch mode
+		bset	#cfbMode,cFlags(a1)	; enable pitch mode
 		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -355,13 +364,14 @@ dcNoisePSG:
 
 		move.b	d3,cStatPSG4(a1)	; save status
 		beq.s	.psg3			; if disabling PSG4 mode, branch
-		move.b	#ctPSG4,cType(a1)	; make PSG3 act on behalf of PSG4
+		or.w	#ctPSG4,(a1)		; make PSG3 act on behalf of PSG4
 		move.b	d3,dPSG			; send command to PSG port
 		rts
 ; ---------------------------------------------------------------------------
 
 .psg3
-		move.b	#ctPSG3,cType(a1)	; make PSG3 not act on behalf of PSG4
+		and.w	#$FFFF-ctGetCh,(a1)	; clear the channel bits from cType
+		or.w	#ctPSG3,(a1)		; make PSG3 not act on behalf of PSG4
 		move.b	#ctPSG4|$1F,dPSG	; send PSG4 mute command to PSG
 		rts
 ; ===========================================================================
@@ -426,8 +436,9 @@ dcsFreq:
 		move.b	(a2)+,cFreq+1(a1)	; ''
 
 	if safe=1
-		btst	#ctbDAC,cType(a1)	; check if this is a DAC channel
-		bne.s	.rts			; if so, branch
+		moveq	#ctChkType,d4		; check channel type mask to d4
+		and.w	(a1),d4			; AND with channel type bits
+		beq.s	.rts			; if DAC channel, branch
 		AMPS_Debug_dcInvalid		; this command should be only used with DAC channels
 	endif
 .rts
@@ -447,8 +458,9 @@ dcsFreqNote:
 		move.w	(a4,d4.w),cFreq(a1)	; load and save the requested frequency
 
 	if safe=1
-		btst	#ctbDAC,cType(a1)	; check if this is a DAC channel
-		bne.s	.rts			; if so, branch
+		moveq	#ctChkType,d4		; check channel type mask to d4
+		and.w	(a1),d4			; AND with channel type bits
+		beq.s	.rts			; if DAC channel, branch
 		AMPS_Debug_dcInvalid		; this command should be only used with DAC channels
 	endif
 .rts
@@ -772,10 +784,10 @@ dcVoice:
 		AMPS_Debug_dcVoiceEnv		; warn user if DAC & FM volume envelopes are enabled. This behaviour can be removed
 	endif					; for better integration of FM/DAC tracker code with PSG channels.
 
-		btst	#ctbDAC,cType(a1)	; check if this is a DAC channel
-		bne.s	locret_Backup		; if is, skip
-		btst	#cfbInt,(a1)		; check if channel is interrupted by SFX
-		bne.s	locret_Backup		; if is, skip
+		move.w	(a1),d4			; load channel type bits and flags to d4
+		and.w	#cttFM|(cfbInt<<8),d4	; AND with interrupt bit and FM channel bit
+		cmp.w	#cttFM,d4		; check if FM channel and not interrupted
+		bne.s	locret_Backup		; branch if so
 
 	; continue to send FM voice
 ; ===========================================================================
@@ -851,8 +863,8 @@ dUpdateVoiceFM:
 		sub.w	#(VoiceRegs+1)*2,sp	; prepapre space in the stack
 		move.l	sp,a5			; copy pointer to the free space to a5
 
-		move.b	cType(a1),d2		; load channel type to d2
-		and.b	#3,d2			; keep in range
+		moveq	#3,d2			; load channel type mask to d2
+		and.b	cType(a1),d2		; AND with channel type bits
 
 		move.b	(a4)+,d4		; load feedback and algorithm to d4
 		move.b	d4,(a5)+		; save it to free space
@@ -952,9 +964,9 @@ dUpdateVoiceFM:
 		or.b	d2,d3			; add channel offset to register
 		move.b	d3,(a5)+		; write register to buffer
 
-		move.b	cType(a1),d2		; load FM channel type to d2
+		moveq	#4,d2			; load channel part mask to d2
+		and.b	cType(a1),d2		; AND FM channel type with d2
 		lsr.b	#1,d2			; halve part value
-		and.b	#2,d2			; clear extra bits away
 
 .ptok
 		move.l	sp,a5			; copy free space pointer to a5 again
@@ -973,7 +985,7 @@ dUpdateVoiceFM:
 	;	st	(a0)			; mark as end of the cue
 	startZ80				; enable Z80 execution
 		move.l	a5,sp			; fix stack pointer
-		bclr	#cfbVol,(a1)		; reset volume update request flag
+		and.w	#$FFFF-(1<<cfbVol),(a1)	; reset volume update request flag
 		move.l	(sp)+,a2		; load the tracker address from stack
 		rts
 ; ===========================================================================
@@ -987,8 +999,9 @@ dcStop:
 		cmpa.w	#mSFXFM3,a1		; check if this is a SFX channel
 		bhs.s	.sfx			; if yes, run SFX code
 
-		btst	#ctbDAC,cType(a1)	; check if the channel is a DAC channel
-		beq.s	.nodac			; if not, skip
+		moveq	#ctChkType,d3		; get the channel type mask to d3
+		and.w	(a1),d3			; AND channel type bits with d3
+		bne.s	.rts			; if not DAC channel, branch
 		clr.b	cPanning(a1)		; clear panning (required for DAC to work right)
 
 .nodac
@@ -998,28 +1011,32 @@ dcStop:
 
 .sfx
 		clr.b	cPrio(a1)		; clear channel priority
-
 		lea	dSFXoverList(pc),a4	; load quick reference to the SFX override list to a4
-		moveq	#0,d3
-		move.b	cType(a1),d3		; load channel type to d3
-		bmi.s	.psg			; if this is a PSG channel, branch
-		move.w	a1,-(sp)		; push channel pointer
 
-		and.w	#$07,d3			; get only the necessary bits to d3
+		moveq	#ctGetCh,d3		; get channel type mask to d3
+		and.w	(a1),d3			; AND with channel type bits
 		add.w	d3,d3			; double offset (each entry is 1 word in size)
-		move.w	-4(a4,d3.w),a1		; get the SFX channel we were overriding
 
+		cmp.b	#cttFM*2,d3		; check if this is a FM channel
+		bhs.s	.isfm			; if so, branch
+		cmp.b	#cttPSG*2,d3		; check if this is a PSG channel
+		bhs.s	.psg			; if so, branch
+
+.isfm
+		move.w	a1,-(sp)		; push channel pointer
+		move.w	(a4,d3.w),a1		; get the SFX channel we were overriding
 		tst.b	(a1)			; check if that channel is running a tracker
 		bpl.s	.fixch			; if not, branch
 ; ---------------------------------------------------------------------------
 
-		bset	#cfbVol,(a1)		; set update volume flag (cleared by dUpdateVoiceFM)
+		or.w	#(1<<cfbVol),(a1)	; set update volume flag (cleared by dUpdateVoiceFM)
 		bclr	#cfbInt,(a1)		; reset sfx override flag
-		btst	#ctbDAC,cType(a1)	; check if the channel is a DAC channel
-		bne.s	.fixch			; if yes, skip
+
+		moveq	#cttDAC,d4		; load DAC channel mask to d4
+		and.w	(a1),d4			; AND with channel type bits
+		beq.s	.fixch			; if a DAC channel, branch
 
 		bset	#cfbRest,(a1)		; set channel resting flag
-		moveq	#0,d4
 		move.b	cVoice(a1),d4		; load FM voice ID of the channel to d4
 		jsr	dUpdateVoiceFM(pc)	; send FM voice for this channel
 
@@ -1032,7 +1049,7 @@ dcStop:
 ; ---------------------------------------------------------------------------
 
 .psg
-		lsr.b	#4,d3			; make it easier to reference the right offset in the table
+		add.w	d3,d3			; double the channel ID
 		movea.w	(a4,d3.w),a4		; get the SFX channel we were overriding
 		tst.b	(a4)			; check if that channel is running a tracker
 		bpl.s	.exit			; if not, branch
@@ -1040,8 +1057,11 @@ dcStop:
 		bclr	#cfbInt,(a4)		; channel is not interrupted anymore
 		bset	#cfbRest,(a4)		; reset sfx override flag
 
-		cmp.b	#ctPSG4,cType(a4)	; check if this channel is in PSG4 mode
+		moveq	#ctChkType,d4		; load channel type mask to d4
+		and.w	(a4),d4			; AND with channel type bits
+		subq.b	#ctPSG4,d4		; check if this channel is in PSG4 mode
 		bne.s	.exit			; if not, skip
+
 		move.b	cStatPSG4(a4),dPSG%laddr%	; update PSG4 status to PSG port
 		bra.s	.exit
 ; ===========================================================================
@@ -1118,7 +1138,7 @@ dcsLFO:
 ; ---------------------------------------------------------------------------
 
 dcResetCond:
-		bclr	#cfbCond,(a1)		; reset condition flag
+		and.w	#$FFFF-(1<<cfbCond),(a1); reset condition flag
 		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -1182,7 +1202,7 @@ dcCond:
 		move.b	(a4,d3.w),d3		; load value from communcations byte to d3
 
 dcCondCom:
-		bclr	#cfbCond,(a1)		; set condition to true
+		and.w	#$FFFF-(1<<cfbCond),(a1); set condition to true
 		and.w	#$F0,d4			; get condition value only
 		lsr.w	#2,d4			; shift 2 bits down (each entry is 4 bytes large)
 		cmp.b	(a2)+,d3		; check value against tracker byte
@@ -1193,7 +1213,7 @@ dcCondCom:
 ; ---------------------------------------------------------------------------
 
 .false
-		bset	#cfbCond,(a1)		; set condition to false
+		or.w	#(1<<cfbCond),(a1)	; set condition to false
 ; ---------------------------------------------------------------------------
 
 .cond

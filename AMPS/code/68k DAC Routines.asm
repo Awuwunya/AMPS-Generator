@@ -28,13 +28,12 @@ dAMPSnextDAC:
 ; ---------------------------------------------------------------------------
 
 .update
-		and.b	#$FF-(1<<cfbHold),(a1)	; clear hold flag
+		and.b	#$FF-(1<<cfbHold)-(1<<cfbRest),(a1); clear hold and res flags
 	dDoTracker				; process tracker
-		moveq	#0,d4			; clear rest flag
 		tst.b	d1			; check if note is being played
 		bpl.s	.timer			; if not, it must be a timer. Branch
-
 	dTrackNoteDAC				; calculate frequency or update sample
+
 		move.b	(a2)+,d1		; check if next byte is a timer
 		bpl.s	.timer			; if yes, handle it
 		subq.w	#1,a2			; else, undo the increment
@@ -45,8 +44,8 @@ dAMPSnextDAC:
 
 .pcnote
 	dProcNote 0, -1				; reset necessary channel memory
-		tst.b	d4			; check if channel was resting
-		bmi.s	.rest			; if yes, we do not want to note on anymore
+		btst	#cfbRest,(a1)		; check if channel was resting
+		bne.s	.rest			; if yes, we do not want to note on anymore
 		bsr.s	dNoteOnDAC		; do hardware note-on behavior
 		bra.s	.ckvol
 ; ---------------------------------------------------------------------------
@@ -121,7 +120,7 @@ dNoteOnDAC3:
 ; ---------------------------------------------------------------------------
 
 dNoteOnDAC5:
-		btst	#ctbPt2,cType(a1)	; check if this channel is DAC1
+		btst	#0,cType(a1)		; check if this channel is DAC1
 		beq.s	dNoteWriteDAC1		; if is, branch
 
 		lea	dZ80+PCM2_Sample%laddr%,a5	; load addresses for PCM 1
@@ -130,7 +129,6 @@ dNoteOnDAC5:
 ; ---------------------------------------------------------------------------
 
 dNoteWriteDAC1:
-
 		lea	dZ80+PCM1_Sample%laddr%,a5	; load addresses for PCM 2
 		lea	dZ80+PCM1_NewRET%laddr%,a4	; ''
 
@@ -218,7 +216,7 @@ dUpdateFreqDAC3:
 
 		move.b	d2,d3			; copy the frequency to d3
 		lsr.w	#8,d2			; get the upper byte to the lower byte
-		btst	#ctbPt2,cType(a1)	; check if DAC1
+		btst	#0,cType(a1)		; check if DAC1
 		beq.s	dFreqDAC1		; if is, branch
 
 	stopZ80					; wait for Z80 to stop
@@ -265,11 +263,10 @@ dAMPSdoDACSFX:
 .update
 		and.b	#$FF-(1<<cfbHold),(a1)	; clear hold flag
 	dDoTracker				; process tracker
-		moveq	#0,d4			; clear rest flag
 		tst.b	d1			; check if note is being played
 		bpl.s	.timer			; if not, it must be a timer. Branch
-
 	dTrackNoteDAC				; calculate frequency or update sample
+
 		move.b	(a2)+,d1		; check if next byte is a timer
 		bpl.s	.timer			; if yes, handle it
 		subq.w	#1,a2			; else, undo the increment
@@ -280,8 +277,8 @@ dAMPSdoDACSFX:
 
 .pcnote
 	dProcNote 1, -1				; reset necessary channel memory
-		tst.b	d4			; check if channel was resting
-		bmi.s	.rest			; if yes, we do not want to note on anymore
+		btst	#cfbRest,(a1)		; check if channel was resting
+		bne.s	.rest			; if yes, we do not want to note on anymore
 		bsr.w	dNoteOnDAC		; do hardware note-on behavior
 		bra.s	.ckvol
 ; ---------------------------------------------------------------------------
@@ -332,12 +329,12 @@ dUpdateVolDAC3:
 		bne.s	dUpdateVolDAC2		; if it was necessary to update volume, do so
 
 .ckflag
-		btst	#cfbVol,(a1)		; test volume update flag
+		btst	#cfbVol,cType(a1)	; test volume update flag
 		beq.s	locret_VolDAC		; branch if no volume update was requested
 ; ---------------------------------------------------------------------------
 
 dUpdateVolDAC2:
-		bclr	#cfbVol,(a1)		; clear volume update flag
+		and.w	#$FFFF-(1<<cfbVol),(a1)	; clear volume update flag
 		btst	#cfbInt,(a1)		; is the channel interrupted by SFX?
 		bne.s	locret_VolDAC		; if yes, do not update
 
@@ -364,7 +361,7 @@ dUpdateVolDAC2:
 	stopZ80					; wait for Z80 to stop
 		move.b	#$D2,dZ80+PCM_ChangeVolume%laddr%; set volume change flag
 
-		btst	#ctbPt2,cType(a1)	; check if this channel is DAC1
+		btst	#0,cType(a1)		; check if this channel is DAC1
 		beq.s	.dac1			; if is, branch
 		move.b	d1,dZ80+PCM2_Volume+1%laddr%	; save volume for PCM 2
 	startZ80				; enable Z80 execution

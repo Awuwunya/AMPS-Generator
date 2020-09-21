@@ -264,7 +264,6 @@ dUpdateAllAMPS:
 		AMPS_Debug_FadeAddr		; check whether this fade address is valid
 	endif
 
-		moveq	#1<<cfbVol,d0		; prepare volume update to d0
 		moveq	#0,d2
 		move.b	(a4)+,d2		; get FM/command byte from fade data
 		bpl.s	.nofadeend		; branch if this is not a command
@@ -295,15 +294,16 @@ dUpdateAllAMPS:
 		cmp.b	mMasterVolDAC.w,d2	; check if volume changed
 		beq.s	.fadepsg		; if did not, branch
 		move.b	d2,mMasterVolDAC.w	; save new volume
+		moveq	#1<<cfbVol,d0		; prepare volume update to d0
 
-.ch %set%	mDAC1					; start at DAC1
+.ch %set%	mDAC1+cType				; start at DAC1
 	rept Mus_DAC				; do for all music DAC channels
 		or.b	d0,.ch.w		; tell the channel to update its volume
 .ch %set%		.ch+cSize			; go to next channel
 	%endr%
 
 	if FEATURE_SFX_MASTERVOL
-		or.b	d0,mSFXDAC1.w		; tell SFX DAC1 to update its volume
+		or.b	d0,mSFXDAC1+cType.w	; tell SFX DAC1 to update its volume
 	endif
 ; ---------------------------------------------------------------------------
 

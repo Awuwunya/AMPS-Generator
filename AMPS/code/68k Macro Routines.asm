@@ -10,6 +10,7 @@ dGateDAC	macro
 		subq.b	#1,cGateCur(a1)		; decrease delay by 1
 		bne.s	.endt			; if still not 0, branch
 
+		bset	#cfbRest,(a1)		; set track to resting
 		moveq	#0,d3			; play stop sample
 		bsr.w	dNoteOnDAC2		; ''
 		bra.w	.next			; jump to next track
@@ -43,7 +44,7 @@ dGatePSG	macro
 		subq.b	#1,cGateCur(a1)		; decrease delay by 1
 		bne.s	.endt			; if still not 0, branch
 
-		or.b	#(1<<cfbRest)|(1<<cfbVol),(a1); set channel to resting and request a volume update (update on next note-on)
+		or.w	#($100<<cfbRest)|(1<<cfbVol),(a1); set channel to resting and request a volume update (update on next note-on)
 		bsr.w	dMutePSGmus		; mute PSG channel
 		bra.w	.next			; jump to next track
 .endt
@@ -319,7 +320,7 @@ dDoTracker	macro
 .data
 		moveq	#0,d1
 		move.b	(a2)+,d1		; get a byte from tracker
-		cmpi.b	#$E0,d1			; is this a command?
+		cmpi.b	#$DC,d1			; is this a command?
 		blo.s	.notcomm		; if not, continue
 
 		jsr	dCommands(pc)		; run the tracker command routine
@@ -466,20 +467,20 @@ dProcNote	macro	sfx, chan
 ; ---------------------------------------------------------------------------
 
 dTrackNoteDAC	macro
-		btst	#cfbMode,(a1)		; check if we are on pitch mode
+		cmp.b	#$80,d1			; sub $80 from the note (notes start at $80)
+		bne.s	.noprest		; branch if note wasnt $80 (rest)
+		btst	#cfbRest,(a1)		; set channel resting
+		bra.s	.cont
+
+.noprest
+		btst	#cfbMode,cType(a1)	; check if we are on pitch mode
 		bne.s	.pitch			; if so, load frequency
 		move.b	d1,cSample(a1)		; else, save as a sample
 		bra.s	.cont
 
 .pitch
-		subi.b	#$80,d1			; sub $80 from the note (notes start at $80)
-		bne.s	.noprest		; branch if note wasnt $80 (rest)
-		moveq	#-$80,d4		; tell the code we are resting
-		bra.s	.cont
-
-.noprest
 		add.b	cPitch(a1),d1		; add pitch offset to note
-		add.w	d1,d1			; double offset (each entry is a word)
+		add.b	d1,d1			; double offset (each entry is a word)
 		lea	dFreqDAC(pc),a4		; load DAC frequency table to a1
 		move.w	(a4,d1.w),cFreq(a1)	; load and save the requested frequency
 
@@ -495,8 +496,10 @@ dKeyOnFM	macro	sfx
 		and.b	(a1),d3			; AND flags with d3
 		bne.s	.k			; if any of those are set, branch
 
-		moveq	#%mq%F0,d3%at%		; turn all FM operators on
-		or.b	cType(a1),d3		; OR channel type bits to d3
+		moveq	#7,d3			; load channel type mask to d3
+		and.b	cType(a1),d3		; AND channel type value with d3
+		or.b	#$F0,d3			; OR channel type bits to d3
+
 	CheckCue				; check that cue is valid
 	stopZ80
 	WriteYM1	#$28, d3		; Key on: turn all FM operators on
@@ -513,7 +516,7 @@ dKeyOnFM	macro	sfx
 dGetFreqPSG	macro
 		subi.b	#$81,d1			; sub $81 from the note (notes start at $80)
 		bhs.s	.norest			; branch if note wasnt $80 (rest)
-		or.b	#(1<<cfbRest)|(1<<cfbVol),(a1); set channel to resting and request a volume update (update on next note-on)
+		or.w	#($100<<cfbRest)|(1<<cfbVol),(a1); set channel to resting and request a volume update (update on next note-on)
 
 		move.w	#-1,cFreq(a1)		; set invalid PSG frequency
 		jsr	dMutePSGmus(pc)		; mute this PSG channel
@@ -536,10 +539,11 @@ dGetFreqPSG	macro
 ; ---------------------------------------------------------------------------
 
 dStopChannel	macro	stop
-		tst.b	cType(a1)		; check if this was a PSG channel
-		bmi.s	.mutePSG		; if yes, mute it
-		btst	#ctbDAC,cType(a1)	; check if this was a DAC channel
-		bne.s	.muteDAC		; if we are, mute that
+		moveq	#ctChkType,d3		; get the channel type mask to d3
+		and.w	(a1),d3			; AND channel type bits with d3
+		beq.s	.muteDAC		; if DAC channel, branch
+		subq.b	#cttPSG,d3		; check if this is a PSG channel
+		beq.s	.mutePSG		; branch if so
 
 	if %macpfx%stop=0
 		jsr	dKeyOffFM(pc)		; send key-off command to YM

@@ -102,12 +102,12 @@ dUpdateVolFM3:
 		bne.s	dUpdateVolFM2		; if it was necessary to update volume, do so
 
 .ckflag
-		btst	#cfbVol,(a1)		; test volume update flag
+		btst	#cfbVol,cType(a1)	; test volume update flag
 		beq.s	locret_MuteFM		; branch if no volume update was requested
 ; ---------------------------------------------------------------------------
 
 dUpdateVolFM2:
-		bclr	#cfbVol,(a1)		; clear volume update flag
+		and.w	#$FFFF-(1<<cfbVol),(a1)	; clear volume update flag
 		btst	#cfbInt,(a1)		; is the channel interrupted by SFX?
 		bne.s	locret_MuteFM		; if yes, do not update
 
@@ -412,15 +412,16 @@ dKeyOffFM:
 		and.b	(a1),d3			; and flags with d3
 		bne.s	.rts			; if either flag set, branch
 
-		move.b	cType(a1),d3		; load channel type value to d3
+		moveq	#7,d3			; load channel type mask to d3
+		and.b	cType(a1),d3		; AND channel type value with d3
 		moveq	#$28,d4			; load key on/off to d4
 
 	stopZ80
 	CheckCue				; check that cue is valid
 	WriteYM1	d4, d3			; key on: turn all operators off for channel
-	WriteYM1	d4, d3			; the reason we do this, is to work around some YM2612 bug or quirk
-	WriteYM1	d4, d3			; if you key off and key on too quickly, the sound is somewhat wrong
-	WriteYM1	d4, d3			; this was noticeable on few SFX, particularly the death SFX
+;	WriteYM1	d4, d3			; the reason we do this, is to work around some YM2612 bug or quirk
+;	WriteYM1	d4, d3			; if you key off and key on too quickly, the sound is somewhat wrong
+;	WriteYM1	d4, d3			; this was noticeable on few SFX, particularly the death SFX
 	;	st	(a0)			; I am not sure why it works, but I am gonna be honest, I don't care enough to find out
 	startZ80
 

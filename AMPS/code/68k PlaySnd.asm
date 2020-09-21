@@ -263,16 +263,11 @@ dPlaySnd_Music:
 		move.w	(a4)+,(a3)+		; back up data for every channel
 	endif
 
-%ifasm% ASM68K
-		moveq	#$FFFFFFFF-(1<<cfbInt)|(1<<cfbVol),d3; each other bit except interrupted and volume update bits
-%endif%
-%ifasm% AS
-		moveq	#$FF-(1<<cfbInt)|(1<<cfbVol),d3; each other bit except interrupted and volume update bits
-%endif%
+		move.w	#$FFFF-($100<<cfbInt)-(1<<cfbVol),d3; each other bit except interrupted and volume update bits
 
 .ch %set%		mBackDAC1			; start at backup DAC1
 		rept Mus_Ch			; do for all music channels
-			and.b	d3,.ch.w	; remove the interrupted by sfx bit
+			and.w	d3,.ch.w	; remove the interrupted by sfx bit
 .ch %set%			.ch+cSize		; go to next channel
 		%endr%
 		bra.s	.noback
@@ -321,7 +316,7 @@ dPlaySnd_Music:
 		moveq	#1,d5			; prepare duration of 0 frames to d5
 
 		moveq	#%mq%C0,d1%at%		; prepare panning value of centre to d1
-		moveq	#%mvq%(1<<cfbRun)|(1<<cfbVol),d2; prepare running tracker and volume flags into d2
+		moveq	#%mvq%(1<<cfbRun)|(1<<cfbRest),d2; prepare running tracker and volume flags into d2
 		or.b	d3,d2			; or extra flags to d2
 ; ---------------------------------------------------------------------------
 
@@ -348,7 +343,7 @@ dPlaySnd_Music:
 		move.b	(a2)+,cVolume(a1)	; load channel volume
 		move.b	(a2)+,cSample(a1)	; load channel sample ID
 		beq.s	.sampmode		; if 0, we are in sample mode
-		bset	#cfbMode,(a1)		; if not, enable pitch mode
+		or.w	#1<<cfbMode,(a1)	; if not, enable pitch mode
 
 .sampmode
 		add.w	d6,a1			; go to the next channel
@@ -363,8 +358,6 @@ dPlaySnd_Music:
 	endif
 
 		ext.w	d0			; convert byte to word (because of dbf)
-		moveq	#%mvq%(1<<cfbRun)|(1<<cfbRest),d2; prepare running tracker and channel rest flags to d2
-		or.b	d3,d2			; or extra flags to d2
 
 .loopFM
 		move.b	d2,(a1)			; save channel flags
@@ -403,7 +396,7 @@ dPlaySnd_Music:
 		moveq	#2,d5			; prepare duration of 1 frames to d5
 		lea	dPSGtypeVals(pc),a4	; prepare PSG type value list into a4
 		lea	mPSG1.w,a1		; start from PSG1 channel
-		moveq	#%mvq%(1<<cfbRun)|(1<<cfbVol)|(1<<cfbRest),d2; prepare running tracker, resting and volume flags into d2
+		moveq	#%mvq%(1<<cfbRun)|(1<<cfbRest),d2; prepare running tracker, resting and volume flags into d2
 		or.b	d3,d2			; or extra flags to d2
 
 .loopPSG
@@ -467,12 +460,13 @@ dPlaySnd_Music:
 ; Type values for different channels. Used for playing music
 ; ---------------------------------------------------------------------------
 
-dDACtypeVals:	dc.b ctDAC1, ctDAC2
+dDACtypeVals:	dc.b ctDAC1|(1<<cfbVol), ctDAC2|(1<<cfbVol)
 dFMtypeVals:	dc.b ctFM1, ctFM2, ctFM3, ctFM4, ctFM5
 	if FEATURE_FM6
 		dc.b ctFM6
 	endif
-dPSGtypeVals:	dc.b ctPSG1, ctPSG2, ctPSG3
+dPSGtypeVals:	dc.b ctPSG1|(1<<cfbVol), ctPSG2|(1<<cfbVol), ctPSG3|(1<<cfbVol)
+		dc.b ctPSG4|(1<<cfbVol)
 		even
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -561,6 +555,18 @@ dPlaySnd_SFX:
 		rts
 ; ---------------------------------------------------------------------------
 
+.skip
+		addq.l	#6,a2			; skip this sound effect channel
+		dbf	d0,.loopSFX		; repeat for each requested channel
+
+		tst.w	d1			; check if any channel was loaded
+		bne.s	.rts			; if was, branch
+		clr.b	mContLast.w		; reset continous sfx counter (prevent ghost-loading)
+
+.rts
+		rts
+; ---------------------------------------------------------------------------
+
 .setcont
 		move.b	d1,mContLast.w		; save new continous SFX ID
 
@@ -581,46 +587,23 @@ dPlaySnd_SFX:
 		move.b	(a2)+,d0		; load number of SFX channels to d0
 
 .loopSFX
-		moveq	#0,d3
-		move.b	1(a2),d3		; load sound effect channel type to d3
-		move.b	d3,d5			; copy type to d5
-		bmi.s	.chPSG			; if channel is a PSG channel, branch
+		moveq	#ctGetCh,d5		; get channel mask to d5
+		and.b	1(a2),d5		; AND with channel type bits
+		add.w	d5,d5			; double offset (each entry is 1 word in size)
 
-		and.w	#$07,d3			; get only the necessary bits to d3
-		add.w	d3,d3			; double offset (each entry is 1 word in size)
-
-		move.w	-4(a4,d3.w),a1		; get the SFX channel we are trying to load to
+		move.w	(a4,d5.w),a1		; get the SFX channel we are trying to load to
 		cmp.b	cPrio(a1),d2		; check if this sound effect has higher priority
 		blo.s	.skip			; if not, we can not override it
 
-		move.w	-4(a5,d3.w),a3		; get the music channel we should override
+		move.w	(a5,d5.w),a3		; get the music channel we should override
 		bset	#cfbInt,(a3)		; override music channel with sound effect
 		moveq	#1,d4			; prepare duration of 0 frames to d4
-		bra.s	.clearCh
-; ---------------------------------------------------------------------------
 
-.skip
-		addq.l	#6,a2			; skip this sound effect channel
-		dbf	d0,.loopSFX		; repeat for each requested channel
-
-		tst.w	d1			; check if any channel was loaded
-		bne.s	.rts			; if was, branch
-		clr.b	mContLast.w		; reset continous sfx counter (prevent ghost-loading)
-
-.rts
-		rts
-; ---------------------------------------------------------------------------
-
-.chPSG
-		lsr.w	#4,d3			; make it easier to reference the right offset in the table
-		move.w	(a4,d3.w),a1		; get the SFX channel we are trying to load to
-		cmp.b	cPrio(a1),d2		; check if this sound effect has higher priority
-		blo.s	.skip			; if not, we can not override it
-
-		move.w	(a5,d3.w),a3		; get the music channel we should override
-		bset	#cfbInt,(a3)		; override music channel with sound effect
+		cmp.b	#cttPSG*2,d5		; check if this is a PSG channel
+		blo.s	.clearCh		; if not, branch
 		moveq	#2,d4			; prepare duration of 1 frames to d4
 
+		lsr.b	#3,d5			; shift bits into place
 		ori.b	#$1F,d5			; add volume update and max volume to channel type
 		move.b	d5,dPSG			; send volume mute command to PSG
 
@@ -697,10 +680,10 @@ dPlaySnd_SFX:
 .fm
 		moveq	#$F,d3			; set to release note instantly
 	CheckCue				; check that YM cue is valid
-	InitChYM				; prepare to write to channel
 	stopZ80
 
-	WriteYM1	#$28, cType(a1)		; Key on/off: all operators off
+	WriteYM1	#$28, d5		; Key on/off: all operators off
+	InitChYM				; prepare to write to channel
 	WriteChYM	#$80, d3		; Release Rate Operator 1
 	WriteChYM	#$88, d3		; Release Rate Operator 3
 	WriteChYM	#$84, d3		; Release Rate Operator 2
@@ -716,23 +699,37 @@ dPlaySnd_SFX:
 ; Pointers for music channels SFX can override and addresses of SFX channels
 ; ---------------------------------------------------------------------------
 
-dSFXoffList:	dc.w mSFXFM3			; FM3
+dSFXoffList:	dc.w mSFXDAC1			; DAC1
+		dc.w 0				; NULL
 		dc.w mSFXDAC1			; DAC1
-		dc.w mSFXFM4			; FM4
-		dc.w mSFXFM5			; FM5
+		dc.w 0				; NULL
 		dc.w mSFXPSG1			; PSG1
 		dc.w mSFXPSG2			; PSG2
 		dc.w mSFXPSG3			; PSG3
 		dc.w mSFXPSG3			; PSG4
+		dc.w 0				; NULL
+		dc.w mSFXFM2			; FM2
+		dc.w mSFXFM3			; NULL
+		dc.w 0				; NULL
+		dc.w mSFXFM4			; FM4
+		dc.w mSFXFM5			; FM5
+		dc.w 0				; NULL
 
-dSFXoverList:	dc.w mFM3			; SFX FM3
+dSFXoverList:	dc.w mDAC1			; SFX DAC1
+		dc.w 0				; NULL
 		dc.w mDAC1			; SFX DAC1
-		dc.w mFM4			; SFX FM4
-		dc.w mFM5			; SFX FM5
+		dc.w 0				; NULL
 		dc.w mPSG1			; SFX PSG1
 		dc.w mPSG2			; SFX PSG2
 		dc.w mPSG3			; SFX PSG3
 		dc.w mPSG3			; SFX PSG4
+		dc.w 0				; NULL
+		dc.w mFM2			; SFX FM2
+		dc.w 0				; NULL
+		dc.w 0				; NULL
+		dc.w mFM4			; SFX FM4
+		dc.w mFM5			; SFX FM5
+		dc.w 0				; NULL
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Play queued command
@@ -947,14 +944,14 @@ dPlaySnd_OutWater:
 dReqVolUpAll:
 		bsr.s	dReqVolUpPSG		; update PSG volumes
 
-.ch %set%	mDAC1					; start at DAC1
+.ch %set%	mDAC1+cType				; start at DAC1
 	rept Mus_DAC				; do for all music DAC channels
 		or.b	d6,.ch.w		; tell the channel to update its volume
 .ch %set%		.ch+cSize			; go to next channel
 	%endr%
 
 	if FEATURE_SFX_MASTERVOL
-		or.b	d6,mSFXDAC1.w		; tell SFX DAC1 to update its volume
+		or.b	d6,mSFXDAC1+cType.w	; tell SFX DAC1 to update its volume
 	endif
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -967,7 +964,7 @@ dReqVolUpAll:
 dReqVolUpFM:
 		moveq	#1<<cfbVol,d6		; prepare volume update flag to d6
 
-.ch %set%	mSFXFM3					; start at SFX FM3
+.ch %set%	mSFXFM3+cType				; start at SFX FM3
 	rept SFX_FM				; loop through all SFX FM channels
 		or.b	d6,.ch.w		; request channel volume update
 .ch %set%		.ch+cSizeSFX			; go to next channel
@@ -977,7 +974,7 @@ dReqVolUpFM:
 dReqVolUpMusicFM:
 		moveq	#1<<cfbVol,d6		; prepare volume update flag to d6
 
-.ch %set%	mFM1					; start at FM1
+.ch %set%	mFM1+cType				; start at FM1
 	rept Mus_FM				; loop through all music FM channels
 		or.b	d6,.ch.w		; request channel volume update
 .ch %set%		.ch+cSize			; go to next channel
@@ -994,17 +991,17 @@ dReqVolUpMusicFM:
 dReqVolUpPSG:
 		moveq	#1<<cfbVol,d6		; prepare volume update flag to d6
 
-.ch %set%		mSFXPSG1			; start at SFX PSG1
-		rept SFX_PSG			; do for all SFX PSG channels
-			or.b	d6,.ch.w	; tell the channel to update its volume
-.ch %set%			.ch+cSizeSFX		; go to next channel
-		%endr%
+.ch %set%		mSFXPSG1+cType			; start at SFX PSG1
+	rept SFX_PSG				; do for all SFX PSG channels
+		or.b	d6,.ch.w		; tell the channel to update its volume
+.ch %set%		.ch+cSizeSFX			; go to next channel
+	%endr%
 ; ---------------------------------------------------------------------------
 
 dReqVolUpMusicPSG:
 		moveq	#1<<cfbVol,d6		; prepare volume update flag to d6
 
-.ch %set%	mPSG1					; start at PSG1
+.ch %set%	mPSG1+cType				; start at PSG1
 	rept Mus_PSG				; do for all music PSG channels
 		or.b	d6,.ch.w		; tell the channel to update its volume
 .ch %set%		.ch+cSize			; go to next channel

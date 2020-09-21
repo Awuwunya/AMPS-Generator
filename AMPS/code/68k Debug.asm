@@ -377,10 +377,10 @@ AMPS_Debug_Console_Main:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_FadeAddr	macro
-	cmp.l	#$10000,a4	; check if the address is in 16-bit range
-	bhs.s	.ok2		; if not, continue to work
+	cmp.l	#$10000,a4					; check if the address is in 16-bit range
+	bhs.s	.ok2						; if not, continue to work
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_FadeAddr
 	else
 		bra.w	*
@@ -390,7 +390,7 @@ AMPS_Debug_FadeAddr	macro
     endm
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_FadeAddr:
 		RaiseError2 "Fade data must be after address $10000but was at: %<pal0>%<.l a4 sym|split>%<pal2>%<symdisp>", AMPS_Debug_Console_Channel
 	endif
@@ -400,17 +400,18 @@ AMPS_DebugR_FadeAddr:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_FadeCmd	macro
-	cmp.b	#fLast,d2	; check against max
-	bhs.s	.fail		; if in range, branch
-	cmp.b	#$80,d2		; check against min
-	blo.s	.fail		; if too little, bra
-	btst	#1,d2		; check if bit1 set
-	bne.s	.fail		; if is, branch
-	btst	#0,d2		; check if even
-	beq.s	.ok		; if is, branch
+	cmp.b	#fLast,d2					; check against max
+	bhs.s	.fail						; if in range, branch
+	cmp.b	#$80,d2						; check against min
+	blo.s	.fail						; if too little, bra
+
+	btst	#1,d2						; check if bit1 set
+	bne.s	.fail						; if is, branch
+	btst	#0,d2						; check if even
+	beq.s	.ok						; if is, branch
 
 .fail
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_FadeCmd
 	else
 		bra.w	*
@@ -420,7 +421,7 @@ AMPS_Debug_FadeCmd	macro
     endm
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_FadeCmd:
 		RaiseError2 "Invalid Fade command: %<.b d2>", AMPS_Debug_Console_Main
 	endif
@@ -430,10 +431,10 @@ AMPS_DebugR_FadeCmd:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_VolEnvID	macro
-	cmp.b	#(VolEnvs_End-VolEnvs)/4,d4	; check against max
-	bls.s	.ok			; if in range, branch
+	cmp.b	#(VolEnvs_End-VolEnvs)/4,d4			; check against max
+	bls.s	.ok						; if in range, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_VolEnvID
 	else
 		bra.w	*
@@ -443,7 +444,7 @@ AMPS_Debug_VolEnvID	macro
     endm
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_VolEnvID:
 		RaiseError2 "Volume envelope ID out of range: %<.b d4>", AMPS_Debug_Console_Channel
 	endif
@@ -453,10 +454,10 @@ AMPS_DebugR_VolEnvID:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_VolEnvCmd	macro
-	btst	#0,d4		; check if even
-	beq.s	.ok		; if is, branch
+	btst	#0,d4						; check if even
+	beq.s	.ok						; if is, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError2 "Invalid volume envelope command: %<.b d4>", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -470,10 +471,10 @@ AMPS_Debug_VolEnvCmd	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_ModEnvID	macro
-	cmp.b	#(ModEnvs_End-ModEnvs)/4,d4	; check against max
-	bls.s	.ok			; if in range, branch
+	cmp.b	#(ModEnvs_End-ModEnvs)/4,d4			; check against max
+	bls.s	.ok						; if in range, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_ModEnvID
 	else
 		bra.w	*
@@ -483,7 +484,7 @@ AMPS_Debug_ModEnvID	macro
     endm
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_ModEnvID:
 		RaiseError2 "Modulation envelope ID out of range: %<.b d4>", AMPS_Debug_Console_Channel
 	endif
@@ -493,11 +494,11 @@ AMPS_DebugR_ModEnvID:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_NotePSG	macro
-	cmp.b	#dFreqPSG_-dFreqPSG,d1; check against max
-	blo.s	.ok		; if too little, bra
+	cmp.b	#dFreqPSG_-dFreqPSG,d1				; check against max
+	blo.s	.ok						; if too little, bra
 
 .fail
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_NotePSG
 	else
 		bra.w	*
@@ -507,9 +508,9 @@ AMPS_Debug_NotePSG	macro
     endm
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_NotePSG:
-		lsr.w	#1,d1	; get real note
+		lsr.w	#1,d1					; get real note
 		RaiseError2 "Invalid PSG note: %<.b d1>", AMPS_Debug_Console_Channel
 	endif
 ; ===========================================================================
@@ -518,11 +519,11 @@ AMPS_DebugR_NotePSG:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_NoteFM	macro
-	cmp.b	#dFreqFM_-dFreqFM,d1; check against max
-	blo.s	.ok		; if too little, bra
+	cmp.b	#dFreqFM_-dFreqFM,d1				; check against max
+	blo.s	.ok						; if too little, bra
 
 .fail
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_NoteFM
 	else
 		bra.w	*
@@ -532,9 +533,9 @@ AMPS_Debug_NoteFM	macro
     endm
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_NoteFM:
-		lsr.w	#1,d1	; get real note
+		lsr.w	#1,d1					; get real note
 		RaiseError2 "Invalid FM note: %<.b d1>", AMPS_Debug_Console_Channel
 	endif
 ; ===========================================================================
@@ -543,13 +544,13 @@ AMPS_DebugR_NoteFM:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_FreqDAC	macro
-	cmp.w	#MaxPitch,d2	; check if frequency is too large
-	bgt.s	.fail		; if so, branch
-	cmp.w	#-MaxPitch,d2	; check if frequency is too small
-	bge.s	.ok		; if not, branch
+	cmp.w	#MaxPitch,d2					; check if frequency is too large
+	bgt.s	.fail						; if so, branch
+	cmp.w	#-MaxPitch,d2					; check if frequency is too small
+	bge.s	.ok						; if not, branch
 
 .fail
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_FreqDAC
 	else
 		bra.w	*
@@ -559,7 +560,7 @@ AMPS_Debug_FreqDAC	macro
     endm
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_FreqDAC:
 		RaiseError "Out of range DAC frequency: %<.w d2>", AMPS_Debug_Console_Channel
 	endif
@@ -569,7 +570,7 @@ AMPS_DebugR_FreqDAC:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcInvalid	macro
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "Invalid command detected!", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -581,7 +582,7 @@ AMPS_Debug_dcInvalid	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcPortamento	macro
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "Portamento feature is disabled. Set   FEATURE_PORTAMENTO to 1 to enable.", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -593,7 +594,7 @@ AMPS_Debug_dcPortamento	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcModulate	macro
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_dcModulate
 	else
 		bra.w	*
@@ -602,7 +603,7 @@ AMPS_Debug_dcModulate	macro
 ; ---------------------------------------------------------------------------
 
 	if FEATURE_MODULATION=0
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_dcModulate:
 		RaiseError "Modulation feature is disabled. Set   FEATURE_MODULATION to 1 to enable.", AMPS_Debug_Console_Channel
 	endif
@@ -613,10 +614,12 @@ AMPS_DebugR_dcModulate:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcVoiceEnv	macro
-	tst.b	cType(a1)	; check if this is a PSG channel
-	bpl.s	.ok		; if not, skip
+	moveq	#ctChkType,d4					; load channel type mask to d4
+	and.w	(a1),d4						; AND with actual type bits
+	subq.b	#cttPSG,d4					; check if this is PSG
+	bne.s	.ok						; if not, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_dcVoiceEnv
 	else
 		bra.w	*
@@ -625,7 +628,7 @@ AMPS_Debug_dcVoiceEnv	macro
     endm
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_dcVoiceEnv:
 		RaiseError "You can not use sVoice for PSG channel.   Please use sVolEnv instead.", AMPS_Debug_Console_Channel
 	endif
@@ -635,7 +638,7 @@ AMPS_DebugR_dcVoiceEnv:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcModEnv	macro
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "Modulation envelopes are disabled. Set FEATURE_MODENV to 1 to enable.", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -647,7 +650,7 @@ AMPS_Debug_dcModEnv	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcBackup	macro
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_dcBackup
 	else
 		bra.w	*
@@ -655,7 +658,7 @@ AMPS_Debug_dcBackup	macro
     endm
 
 	if FEATURE_BACKUP=0
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_dcBackup:
 		RaiseError "Backup feature is disabled. Set FEATURE_BACKUP to 1 to enable.", AMPS_Debug_Console_Channel
 	endif
@@ -667,21 +670,23 @@ AMPS_DebugR_dcBackup:
 
 AMPS_Debug_dcPan	macro
 	if FEATURE_FM6
-		cmp.w	#mFM6,a1; check if this is FM6
-		beq.s	.fail	; if so, branch
+		cmp.w	#mFM6,a1				; check if this is FM6
+		beq.s	.fail					; if so, branch
 	endif
 
-	tst.b	cType(a1)	; check for PSG channel
-	bpl.s	.ok		; if no, branch
+	moveq	#ctChkType,d4					; load channel type mask to d4
+	and.w	(a1),d4						; AND with actual type bits
+	subq.b	#cttPSG,d4					; check if this is PSG
+	bne.s	.ok						; if not, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "sPan on a PSG channel!", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
 	endif
 
 .fail
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "sPan on FM6 channel!", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -695,24 +700,27 @@ AMPS_Debug_dcPan	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcNoisePSG	macro
-	beq.s	.ckch		; branch if value is 0
-	cmp.b	#snPeri10,d3	; check if the value is below valid range
-	blo.s	.fail		; branch if yes
-	cmp.b	#snWhitePSG3,d3	; check if the value is above valid range
-	bls.s	.ckch		; branch if not
+	beq.s	.ckch						; branch if value is 0
+	cmp.b	#snPeri10,d3					; check if the value is below valid range
+	blo.s	.fail						; branch if yes
+	cmp.b	#snWhitePSG3,d3					; check if the value is above valid range
+	bls.s	.ckch						; branch if not
 
 .fail
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "sNoisePSG with an invalid value: %<.b d3>", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
 	endif
 
 .ckch
-	cmp.b	#ctPSG3,cType(a1); check if this is PSG3 or PSG4 channel
-	bhs.s	.ok		; if is, branch
+	moveq	#ctGetCh,d3					; get channel mask to d3
+	and.w	(a1),d3						; AND channel type bits with d3
+	subq.b	#ctPSG3,d3					; make PSG3 channel be 0
+	cmp.b	#ctPSG4-ctPSG3,d3				; check if PSG3 or PSG4
+	bls.s	.ok						; if is, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "sNoisePSG on an invalid channel!", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -726,10 +734,10 @@ AMPS_Debug_dcNoisePSG	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcGate	macro
-	cmp.w	#mSFXDAC1,a1	; check for SFX channel
-	blo.s	.ok		; if not, branch
+	cmp.w	#mSFXDAC1,a1					; check for SFX channel
+	blo.s	.ok						; if not, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "sGate on a SFX channel!", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -743,10 +751,10 @@ AMPS_Debug_dcGate	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcCall1	macro
-	cmp.w	#mSFXDAC1,a1	; check for SFX channel
-	blo.s	.ok1		; if no, branch
+	cmp.w	#mSFXDAC1,a1					; check for SFX channel
+	blo.s	.ok1						; if no, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "sCall on a SFX channel!", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -757,10 +765,10 @@ AMPS_Debug_dcCall1	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcCall2	macro
-	cmp.b	#cGateCur,d4	; check for invalid stack address
-	bhi.s	.ok2		; if no, branch
+	cmp.b	#cGateCur,d4					; check for invalid stack address
+	bhi.s	.ok2						; if no, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "sCall stack too deep!", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -774,15 +782,15 @@ AMPS_Debug_dcCall2	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcLoop	macro
-	cmp.b	#cSizeSFX-cLoop,d4	; check for invalid call number
-	bhi.s	.fail			; if is, branch
-	cmp.w	#mSFXDAC1,a1		; check for SFX channel
-	blo.s	.ok			; if no, branch
-	cmp.b	#cPrio-cLoop,d4		; check if cPrio
-	bne.s	.ok			; if not, branch
+	cmp.b	#cSizeSFX-cLoop,d4				; check for invalid call number
+	bhi.s	.fail						; if is, branch
+	cmp.w	#mSFXDAC1,a1					; check for SFX channel
+	blo.s	.ok						; if no, branch
+	cmp.b	#cPrio-cLoop,d4					; check if cPrio
+	bne.s	.ok						; if not, branch
 
 .fail
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "sLoop ID %<.b d4> is invalid!", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -796,10 +804,10 @@ AMPS_Debug_dcLoop	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcReturn1	macro
-	cmp.w	#mSFXDAC1,a1	; check for SFX channel
-	blo.s	.ok1		; if no, branch
+	cmp.w	#mSFXDAC1,a1					; check for SFX channel
+	blo.s	.ok1						; if no, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "sRet on a SFX channel!", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -810,10 +818,10 @@ AMPS_Debug_dcReturn1	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_dcReturn2	macro
-	cmp.b	#cSize,d3	; check for invalid stack address
-	bls.s	.ok2		; if no, branch
+	cmp.b	#cSize,d3					; check for invalid stack address
+	bls.s	.ok2						; if no, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "sRet stack too shallow!", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -827,13 +835,13 @@ AMPS_Debug_dcReturn2	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_UpdVoiceFM	macro
-	cmp.b	#'N',(a4)+	; check if this is valid voice
-	bne.s	.fail		; if not, branch
-	cmp.w	#'AT',(a4)+	; check if this is valid voice
-	beq.s	.ok		; if is, branch
+	cmp.b	#'N',(a4)+					; check if this is valid voice
+	bne.s	.fail						; if not, branch
+	cmp.w	#'AT',(a4)+					; check if this is valid voice
+	beq.s	.ok						; if is, branch
 
 .fail
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		move.b	cVoice(a1),d4
 		RaiseError "FM voice Update invalid voice: %<.b d4>", AMPS_Debug_Console_Channel
 	else
@@ -848,13 +856,13 @@ AMPS_Debug_UpdVoiceFM	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_UpdVolFM	macro
-	cmp.b	#'N',(a4)+	; check if this is valid voice
-	bne.s	.fail		; if not, branch
-	cmp.w	#'AT',(a4)+	; check if this is valid voice
-	beq.s	.ok		; if is, branch
+	cmp.b	#'N',(a4)+					; check if this is valid voice
+	bne.s	.fail						; if not, branch
+	cmp.w	#'AT',(a4)+					; check if this is valid voice
+	beq.s	.ok						; if is, branch
 
 .fail
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_UpdVolFM
 	else
 		bra.w	*
@@ -864,7 +872,7 @@ AMPS_Debug_UpdVolFM	macro
     endm
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_UpdVolFM:
 	move.b	cVoice(a1),d4
 	RaiseError2 "FM Volume Update invalid voice: %<.b d4>", AMPS_Debug_Console_Channel
@@ -875,13 +883,13 @@ AMPS_DebugR_UpdVolFM:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_CuePtr	macro id
-	cmp.l	#$A00000+YM_Buffer1,a0	; check against min
-	blo.s	.fail%tlbl%			; if not in range, branch
-	cmp.l	#$A00000+YM_BufferEnd,a0; check against max
-	blo.s	.ok%tlbl%			; if in range, branch
+	cmp.l	#$A00000+YM_Buffer1,a0				; check against min
+	blo.s	.fail%tlbl%					; if not in range, branch
+	cmp.l	#$A00000+YM_BufferEnd,a0			; check against max
+	blo.s	.ok%tlbl%					; if in range, branch
 
 .fail%tlbl%
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_CuePtr%dlbs%id%dlbe%
 	else
 		bra.w	*
@@ -891,7 +899,7 @@ AMPS_Debug_CuePtr	macro id
     endm
 ; ---------------------------------------------------------------------------
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 AMPS_DebugR_CuePtrGen:
 		RaiseError2 "CUE invalid at macro: %<.l a0>", AMPS_Debug_Console_Channel
 AMPS_DebugR_CuePtr0:
@@ -905,10 +913,10 @@ AMPS_DebugR_CuePtr3:
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_PlayCmd	macro
-	cmp.b	#(dSoundCommands_End-dSoundCommands)/4,d1; check if this is valid command
-	bls.s	.ok		; if is, branch
+	cmp.b	#(dSoundCommands_End-dSoundCommands)/4,d1	; check if this is valid command
+	bls.s	.ok						; if is, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "Invalid command in queue: %<.b d1>", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -922,10 +930,10 @@ AMPS_Debug_PlayCmd	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_SoundID	macro
-	cmp.b	#SFXlast,d1	; check if this is a valid sound id
-	blo.s	.ok		; if yes, branch
+	cmp.b	#SFXlast,d1					; check if this is a valid sound id
+	blo.s	.ok						; if yes, branch
 
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "Sound ID %<.b d1> is not a valid sound!", AMPS_Debug_Console_Main
 	else
 		bra.w	*
@@ -939,14 +947,14 @@ AMPS_Debug_SoundID	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_PlayTrackMus	macro
-	cmp.l	#musaddr,d2	; check if this is valid tracker
-	blo.s	.fail%tlbl%		; if no, branch
-	cmp.l	#musend,d2	; check if this is valid tracker
-	blo.s	.ok%tlbl%		; if is, branch
+	cmp.l	#musaddr,d2					; check if this is valid tracker
+	blo.s	.fail%tlbl%					; if no, branch
+	cmp.l	#musend,d2					; check if this is valid tracker
+	blo.s	.ok%tlbl%					; if is, branch
 
 .fail%tlbl%
-	if %raiseerror%	; check if Vladik's debugger is active
-		lsr.w	#2,d1	; get actual ID
+	if %raiseerror%						; check if Vladik's debugger is active
+		lsr.w	#2,d1					; get actual ID
 		RaiseError "Invalid tracker at Music %<.b d1>: %<.l d2>%<endl>%<.l d2 sym>", AMPS_Debug_Console_Main
 	else
 		bra.w	*
@@ -957,38 +965,38 @@ AMPS_Debug_PlayTrackMus	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_PlayTrackMus2	macro ch
-	swap	d2		; make some space to store stuff
-	move.w	d1,d2		; store this thing away
-	move.l	a3,d1		; load the target address
+	swap	d2						; make some space to store stuff
+	move.w	d1,d2						; store this thing away
+	move.l	a3,d1						; load the target address
 
-	and.l	#$FFFFFF,d1	; remove high byte
-	cmp.l	#musaddr,d1	; check if this is valid tracker
-	blo.s	.fail%tlbl%		; if no, branch
-	cmp.l	#dacaddr,d1	; check if this is valid tracker
-	blo.s	.ok%tlbl%		; if is, branch
+	and.l	#$FFFFFF,d1					; remove high byte
+	cmp.l	#musaddr,d1					; check if this is valid tracker
+	blo.s	.fail%tlbl%					; if no, branch
+	cmp.l	#dacaddr,d1					; check if this is valid tracker
+	blo.s	.ok%tlbl%					; if is, branch
 
 .fail%tlbl%
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "Invalid tracker at Music %macpfx%ch%macpfx%: %<.l d1>%<endl>%<.l d1 sym>", AMPS_Debug_Console_Main
 	else
 		bra.w	*
 	endif
 
 .ok%tlbl%
-	move.w	d2,d1		; get the value back
-	swap	d2		; also this one as well
+	move.w	d2,d1						; get the value back
+	swap	d2						; also this one as well
     endm
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_PlayTrackSFX	macro
-	cmp.l	#sfxaddr,d2	; check if this is valid tracker
-	blo.s	.fail%tlbl%		; if no, branch
-	cmp.l	#musaddr,d2	; check if this is valid tracker
-	blo.s	.ok%tlbl%		; if is, branch
+	cmp.l	#sfxaddr,d2					; check if this is valid tracker
+	blo.s	.fail%tlbl%					; if no, branch
+	cmp.l	#musaddr,d2					; check if this is valid tracker
+	blo.s	.ok%tlbl%					; if is, branch
 
 .fail%tlbl%
-	if %raiseerror%	; check if Vladik's debugger is active
-		lsr.w	#2,d1	; get actual ID
+	if %raiseerror%						; check if Vladik's debugger is active
+		lsr.w	#2,d1					; get actual ID
 		RaiseError "Invalid tracker at SFX %<.b d1>: %<.l d2>%<endl>%<.l d2 sym>", AMPS_Debug_Console_Main
 	else
 		bra.w	*
@@ -1000,14 +1008,14 @@ AMPS_Debug_PlayTrackSFX	macro
 
 AMPS_Debug_PlayTrackSFX2	macro
 	move.l	a3,d4
-	and.l	#$FFFFFF,d4	; remove high byte
-	cmp.l	#sfxaddr,d4	; check if this is valid tracker
-	blo.s	.fail%tlbl%		; if no, branch
-	cmp.l	#musaddr,d4	; check if this is valid tracker
-	blo.s	.ok%tlbl%		; if is, branch
+	and.l	#$FFFFFF,d4					; remove high byte
+	cmp.l	#sfxaddr,d4					; check if this is valid tracker
+	blo.s	.fail%tlbl%					; if no, branch
+	cmp.l	#musaddr,d4					; check if this is valid tracker
+	blo.s	.ok%tlbl%					; if is, branch
 
 .fail%tlbl%
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "Invalid tracker at SFX ch: %<.l d2>%<endl>%<.l d2 sym>", AMPS_Debug_Console_Main
 	else
 		bra.w	*
@@ -1018,15 +1026,15 @@ AMPS_Debug_PlayTrackSFX2	macro
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_TrackUpd	macro
-	move.l	a2,d1		; copy to d1
-	and.l	#$FFFFFF,d1	; remove high byte
-	cmp.l	#sfxaddr,d1	; check if this is valid tracker
-	blo.s	.fail2		; if no, branch
-	cmp.l	#dacaddr,d1	; check if this is valid tracker
-	blo.s	.data		; if is, branch
+	move.l	a2,d1						; copy to d1
+	and.l	#$FFFFFF,d1					; remove high byte
+	cmp.l	#sfxaddr,d1					; check if this is valid tracker
+	blo.s	.fail2						; if no, branch
+	cmp.l	#dacaddr,d1					; check if this is valid tracker
+	blo.s	.data						; if is, branch
 
 .fail2
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		RaiseError "Invalid tracker address: %<.l a2>%<endl>%<.l a2 sym>", AMPS_Debug_Console_Channel
 	else
 		bra.w	*
@@ -1039,7 +1047,7 @@ AMPS_Debug_TrackUpd	macro
 
 AMPS_Debug_ChkTracker	macro
 .fail
-	if %raiseerror%	; check if Vladik's debugger is active
+	if %raiseerror%						; check if Vladik's debugger is active
 		jsr	AMPS_DebugR_ChkTracker
 	else
 		bra.w	*
@@ -1049,106 +1057,106 @@ AMPS_Debug_ChkTracker	macro
 
 AMPS_DebugR_ChkTracker:
 %ifasm% AS
-	ifndef isAMPS				; if not custom version
+	ifndef isAMPS						; if not custom version
 %endif%
 %ifasm% ASM68K
-	if ~def(isAMPS)				; if not custom version
+	if ~def(isAMPS)						; if not custom version
 %endif%
 		moveq	#0,d7
 		Console.Run AMPS_DebugR_ChkTracker2
 
 	else
 		jsr	AMPS_Debug_CalcMax(pc)
-		swap	d7			; swap d7 words
+		swap	d7					; swap d7 words
 
 .loop
-		move.l	d7,$FF0000		; save stuff in RAM
+		move.l	d7,$FF0000				; save stuff in RAM
 		Console.Run AMPS_DebugR_ChkTracker2, NAT
-		move.l	$FF0000,d7		; get stuff back
+		move.l	$FF0000,d7				; get stuff back
 
 .nodraw
 		moveq	#-1,d6
-		dbf	d6,*			; delay a lot
+		dbf	d6,*					; delay a lot
 ; ---------------------------------------------------------------------------
 
 	; implement reading control data
 		lea	$A10003,a1
-		move.b	#0,(a1)			; set TH low
-		or.l	d0,d0			; delay
-		move.b	#$40,(a1)		; set TH high
-		or.l	d0,d0			; delay
-		move.b	(a1),d0			; get dpad stat
+		move.b	#0,(a1)					; set TH low
+		or.l	d0,d0					; delay
+		move.b	#$40,(a1)				; set TH high
+		or.l	d0,d0					; delay
+		move.b	(a1),d0					; get dpad stat
 
-		move.w	d7,d5			; copy to d5
-		btst	#0,d0			; check if up held
-		bne.s	.ckd			; if not ,branch
+		move.w	d7,d5					; copy to d5
+		btst	#0,d0					; check if up held
+		bne.s	.ckd					; if not ,branch
 
-		subq.w	#1,d7			; move up
-		bpl.s	.ckd			; if positive, branch
-		clr.w	d7			; else force to 0
+		subq.w	#1,d7					; move up
+		bpl.s	.ckd					; if positive, branch
+		clr.w	d7					; else force to 0
 
 .ckd
-		btst	#1,d0			; check if down held
-		bne.s	.ckdraw			; if not ,branch
+		btst	#1,d0					; check if down held
+		bne.s	.ckdraw					; if not ,branch
 
 		swap	d7
-		move.w	d7,d6			; copy high word to d6
+		move.w	d7,d6					; copy high word to d6
 		swap	d7
 
-		cmp.w	d6,d7			; check if we can move up
-		bge.s	.ckdraw			; if not, branch
-		addq.w	#1,d7			; move down
+		cmp.w	d6,d7					; check if we can move up
+		bge.s	.ckdraw					; if not, branch
+		addq.w	#1,d7					; move down
 
 .ckdraw
-		cmp.w	d7,d5			; check if we need to redraw
-		beq.s	.nodraw			; if not, branch
+		cmp.w	d7,d5					; check if we need to redraw
+		beq.s	.nodraw					; if not, branch
 		bra.w	.loop
 	endif
 ; ---------------------------------------------------------------------------
 
 AMPS_Debug_CalcMax:
-		moveq	#28,d6		; max lines count
-		moveq	#10-1,d7	; run for 10 chs
-		moveq	#cSize,d5	; prepare size
-		lea	mPSG3.w,a5	; start at PSG3
+		moveq	#28,d6					; max lines count
+		moveq	#10-1,d7				; run for 10 chs
+		moveq	#cSize,d5				; prepare size
+		lea	mPSG3.w,a5				; start at PSG3
 
 .chkloop
-		tst.w	d6		; check if we have no lines left
-	;	ble.s	.rts		; if so, we found it
-		subq.w	#3,d6		; we need at least 3 lines
-		bmi.s	.add		; if not enough lines, branch
+		tst.w	d6					; check if we have no lines left
+	;	ble.s	.rts					; if so, we found it
+		subq.w	#3,d6					; we need at least 3 lines
+		bmi.s	.add					; if not enough lines, branch
 
-		move.w	a5,d1		; copy ch to d1
-		add.w	#cSize,d1	; go to end of it
+		move.w	a5,d1					; copy ch to d1
+		add.w	#cSize,d1				; go to end of it
 
 		moveq	#0,d0
-		move.b	cStack(a5),d0	; get stack to d0
-		lea	(a5,d0.w),a6	; and get first element to a6
+		move.b	cStack(a5),d0				; get stack to d0
+		lea	(a5,d0.w),a6				; and get first element to a6
 
 .stack
-		cmp.w	a6,d1		; check if stack is dry now
-		bhi.s	.inc		; if not, branch
+		cmp.w	a6,d1					; check if stack is dry now
+		bhi.s	.inc					; if not, branch
 
-		sub.w	d5,a5		; sub ch size
-		dbf	d7,.chkloop	; loop for all chans
+		sub.w	d5,a5					; sub ch size
+		dbf	d7,.chkloop				; loop for all chans
 		bra.s	.add
 
 .inc
-		addq.w	#4,a6		; go to next long
-		subq.w	#1,d6		; sub 1 line
-		bpl.s	.stack		; if lines left, branch
+		addq.w	#4,a6					; go to next long
+		subq.w	#1,d6					; sub 1 line
+		bpl.s	.stack					; if lines left, branch
 
 .add
-		addq.w	#1,d7		; increase ch by 1
+		addq.w	#1,d7					; increase ch by 1
 .rts
 		rts
 ; ---------------------------------------------------------------------------
 
 AMPS_DebugR_ChkTracker_Ch:
-		subq.w	#1,d7		; sub 1 from offset
-		bpl.w	.n		; branch if positive
-		tst.w	d6		; check if we need to render anymore
-		bmi.w	.n		; if not, branch
+		subq.w	#1,d7					; sub 1 from offset
+		bpl.w	.n					; branch if positive
+		tst.w	d6					; check if we need to render anymore
+		bmi.w	.n					; if not, branch
 
 ; fmt: <addr> lstdur, dur, freq, sample, loop0, loop1, loop2
 		jsr	(a0)
@@ -1174,36 +1182,36 @@ AMPS_DebugR_ChkTracker_Ch:
 %endif%
 ; ---------------------------------------------------------------------------
 
-		subq.w	#2,d6		; sub those 2 lines from stuff
-		bmi.w	.n		; if drawn all, branch
-		move.w	a5,d1		; copy ch to d1
-		add.w	d5,d1		; go to end of it
+		subq.w	#2,d6					; sub those 2 lines from stuff
+		bmi.w	.n					; if drawn all, branch
+		move.w	a5,d1					; copy ch to d1
+		add.w	d5,d1					; go to end of it
 
 		moveq	#0,d0
-		move.b	cStack(a5),d0	; get stack to d0
-		lea	(a5,d0.w),a6	; and get first element to a6
+		move.b	cStack(a5),d0				; get stack to d0
+		lea	(a5,d0.w),a6				; and get first element to a6
 
-		cmp.w	a6,d1		; check if stack is dry
-		bls.s	.c		; if is, branch
+		cmp.w	a6,d1					; check if stack is dry
+		bls.s	.c					; if is, branch
 	Console.WriteLine " %<pal1>Stack:%<pal0>%<.l (a6) sym|split>%<pal2>%<symdisp>"
-		tst.l	(a6)+		; AS HACK
-		subq.w	#1,d6		; sub a line
-		bmi.s	.n		; if drawn all, branch
+		tst.l	(a6)+					; AS HACK
+		subq.w	#1,d6					; sub a line
+		bmi.s	.n					; if drawn all, branch
 
 .loop
-		cmp.w	a6,d1		; check if we printed full stack
-		bls.s	.c		; if not though, branch
+		cmp.w	a6,d1					; check if we printed full stack
+		bls.s	.c					; if not though, branch
 	Console.WriteLine "   %<pal0>%<.l (a6) sym|split>%<pal2>%<symdisp>"
-		tst.l	(a6)+		; AS HACK
-		subq.w	#1,d6		; sub a line
-		bpl.s	.loop		; if we havent drawn all, branch
+		tst.l	(a6)+					; AS HACK
+		subq.w	#1,d6					; sub a line
+		bpl.s	.loop					; if we havent drawn all, branch
 
 .c
 	Console.BreakLine
-		subq.w	#1,d6		; sub a line
+		subq.w	#1,d6					; sub a line
 
 .n
-		add.w	d5,a5		; go to next ch
+		add.w	d5,a5					; go to next ch
 		rts
 ; ---------------------------------------------------------------------------
 

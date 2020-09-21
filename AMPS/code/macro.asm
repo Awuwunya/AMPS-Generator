@@ -102,57 +102,65 @@ cSize =		%re%		; size of each music track
 ; ---------------------------------------------------------------------------
 
 	%rsset% 0
-cfbMode =	%re%		; set if in pitch mode, clear if in sample mode. DAC only
 cfbRest		%rb% 1		; set if channel is resting. FM and PSG only
 cfbInt		%rb% 1		; set if interrupted by SFX. Music only
 cfbHold		%rb% 1		; set if note is being held
 cfbMod		%rb% 1		; set if modulation is enabled
-cfbCond		%rb% 1		; set if condition is false
-cfbVol		%rb% 1		; set if channel should update volume
 cfbWater	%rb% 1		; set if underwater mode is disabled
 cfbRun =	$07		; set if channel is running a tracker
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
-; Misc variables for channel modes
+; Variables and bits for channel type
 ; ---------------------------------------------------------------------------
 
-ctbPt2 =	$02		; bit part 2 - FM 4-6
-ctFM1 =		$00		; FM 1
-ctFM2 =		$01		; FM 2
-ctFM3 =		$02		; FM 3	- Valid for SFX
-ctFM4 =		$04		; FM 4	- Valid for SFX
-ctFM5 =		$05		; FM 5	- Valid for SFX
+ctChkType =	$0C						; check channel type with the AND instruction
+cttFM =		$08						; FM type bits for the check
+cttPSG =	$04						; PSG type bits for the check
+ctGetCh =	$0F						; get channel type and ID bits with the AND instruction
+
+ctbPt2 =	$02						; bit part 2 - FM 4-6
+ctFM1 =		cttFM+0						; FM 1
+ctFM2 =		cttFM+1						; FM 2	- Valid for SFX
+ctFM3 =		cttFM+2						; FM 3
+ctFM4 =		cttFM+(1<<ctbPt2)+0				; FM 4	- Valid for SFX
+ctFM5 =		cttFM+(1<<ctbPt2)+1				; FM 5	- Valid for SFX
 	if FEATURE_FM6
-ctFM6 =		$06		; FM 6
+ctFM6 =		cttFM+(1<<ctbPt2)+2				; FM 6
 	endif
 
-ctbDAC =	$04		; DAC bit
-ctDAC1 =	(1<<ctbDAC)|$03	; DAC 1	- Valid for SFX
-ctDAC2 =	(1<<ctbDAC)|$06	; DAC 2
+cfbMode =	$01						; set if in pitch mode, clear if in sample mode. DAC only
+ctDAC1 =	$00						; DAC 1	- Valid for SFX
+ctDAC2 =	$01						; DAC 2
 
-ctPSG1 =	$80		; PSG 1	- Valid for SFX
-ctPSG2 =	$A0		; PSG 2	- Valid for SFX
-ctPSG3 =	$C0		; PSG 3	- Valid for SFX
-ctPSG4 =	$E0		; PSG 4
+ctPSG1 =	cttPSG						; PSG 1	- Valid for SFX
+ctPSG2 =	cttPSG+1					; PSG 2	- Valid for SFX
+ctPSG3 =	cttPSG+2					; PSG 3	- Valid for SFX
+ctPSG4 =	cttPSG+3					; PSG 4
+
+	%rsset% 4
+cfbVol		%rb% 1						; set if channel should update volume
+cfbFreq		%rb% 1						; set if channel should update frequency
+cfbCond		%rb% 1						; set if condition is false
+cfbDis =	$07						; set if channel is disabled
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Misc flags
 ; ---------------------------------------------------------------------------
 
-Mus_DAC =	2		; number of DAC channels
-Mus_FM =	5+((FEATURE_FM6<>0)&1); number of FM channels (5 or 6)
-Mus_PSG =	3		; number of PSG channels
-Mus_Ch =	Mus_DAC+Mus_FM+Mus_PSG; total number of music channels
-SFX_DAC =	1		; number of DAC SFX channels
-SFX_FM =	3		; number of FM SFX channels
-SFX_PSG =	3		; number of PSG SFX channels
-SFX_Ch =	SFX_DAC+SFX_FM+SFX_PSG; total number of SFX channels
+Mus_DAC =	2						; number of DAC channels
+Mus_FM =	5+((FEATURE_FM6<>0)&1)				; number of FM channels (5 or 6)
+Mus_PSG =	3						; number of PSG channels
+Mus_Ch =	Mus_DAC+Mus_FM+Mus_PSG				; total number of music channels
+SFX_DAC =	1						; number of DAC SFX channels
+SFX_FM =	3						; number of FM SFX channels
+SFX_PSG =	3						; number of PSG SFX channels
+SFX_Ch =	SFX_DAC+SFX_FM+SFX_PSG				; total number of SFX channels
 
-VoiceRegs =	29		; total number of registers inside of a voice
-VoiceTL =	VoiceRegs-4	; location of voice TL levels
+VoiceRegs =	29						; total number of registers inside of a voice
+VoiceTL =	VoiceRegs-4					; location of voice TL levels
 
-MaxPitch =	$1000		; this is the maximum pitch Dual PCM is capable of processing
-Z80E_Read =	$0018		; this is used by Dual PCM internally but we need this for macros
+MaxPitch =	$1000						; this is the maximum pitch Dual PCM is capable of processing
+Z80E_Read =	$0018						; this is used by Dual PCM internally but we need this for macros
 
 ; ---------------------------------------------------------------------------
 ; NOTE: There is no magic trick to making Dual PCM play samples at higher rates.
@@ -215,7 +223,7 @@ mPSG1		%rb% cSize	; PSG 1 data
 mPSG2		%rb% cSize	; PSG 2 data
 mPSG3		%rb% cSize	; PSG 3 data
 mSFXDAC1	%rb% cSizeSFX	; SFX DAC 1 data
-mSFXFM3		%rb% cSizeSFX	; SFX FM 3 data
+mSFXFM2		%rb% cSizeSFX	; SFX FM 2 data
 mSFXFM4		%rb% cSizeSFX	; SFX FM 4 data
 mSFXFM5		%rb% cSizeSFX	; SFX FM 5 data
 mSFXPSG1	%rb% cSizeSFX	; SFX PSG 1 data
@@ -446,9 +454,9 @@ startZ80 	macro
 ; ---------------------------------------------------------------------------
 
 InitChYM	macro
-	move.b	cType(a1),d6		; get channel type to d6
-	move.b	d6,d5			; copy to d5
-	and.b	#3,d5			; get only the important part
+	move.b	cType(a1),d6		; load channel type with d6
+	moveq	#3,d5			; load the channel mask to d5
+	and.b	d6,d5			; AND type with d5
 	lsr.b	#1,d6			; halve part value
 	and.b	#2,d6			; clear extra bits away
     endm
