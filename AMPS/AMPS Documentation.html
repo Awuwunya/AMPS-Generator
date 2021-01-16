@@ -31,15 +31,14 @@
 		const chantbl = [
 			{ size: 1, align: 1, name: "cFlags", },
 			{ size: 1, align: 1, name: "cType", },
+			{ size: 0, align: 2, name: "cSoundID", },
 			{ size: 4, align: 2, name: "cData", },
-			{ size: 0, align: 1, name: "cEnvPos", cno: 0x10, },
-			{ size: 0, align: 1, name: "cStatPSG4", cyes: 0x10, },
+			{ size: 0, align: 1, name: "cStatPSG4", },
 			{ size: 1, align: 1, name: "cPanning", },
 			{ size: 1, align: 1, name: "cDetune", },
 			{ size: 1, align: 1, name: "cPitch", },
 			{ size: 1, align: 1, name: "cVolume", },
 			{ size: 1, align: 1, name: "cTick", },
-			{ size: 0, align: 1, name: "cVolEnv", cno: 0x10, },
 			{ size: 0, align: 1, name: "cSample", },
 			{ size: 1, align: 1, name: "cVoice", },
 			{ size: 1, align: 1, name: "cDuration", },
@@ -57,8 +56,8 @@
 			{ size: 2, align: 2, cyes: 0x04, name: "cPortaFreq", },
 			{ size: 2, align: 2, cyes: 0x04, name: "cPortaDisp", },
 
-			{ size: 1, align: 1, cyes: 0x10, name: "cVolEnv", },
-			{ size: 1, align: 1, cyes: 0x10, name: "cEnvPos", },
+			{ size: 1, align: 1, name: "cVolEnv", },
+			{ size: 1, align: 1, name: "cEnvPos", },
 
 			{ size: 1, align: 1, cyes: 0x08, name: "cModEnv", },
 			{ size: 1, align: 1, cyes: 0x08, name: "cModEnvPos", },
@@ -68,7 +67,6 @@
 			{ size: 1, align: 1, cyes: 0x80, name: "cChipVol", },
 
 			{ size: 3, align: 1, name: "cLoop", },
-			{ size: 1, align: 2, name: "cStatPSG4", offset: -2, cno: 0x10, },
 			{ size: 1, align: 2, name: "cPrio", offset: -1, },
 			{ size: 0, align: 2, name: "cSizeSFX", save: -2, },
 
@@ -83,20 +81,20 @@
 			{ size: 1, align: 1, name: "mFlags", },
 			{ size: 1, align: 1, name: "mCtrPal", },
 			{ size: 8, align: 1, name: "mComm", },
+			{ size: 1, align: 1, name: "mMasterVolPSG", },
+			{ size: 1, align: 1, name: "mMasterVolDAC", },
 			{ size: 0, align: 2, name: "mMasterVolFM", },
 			{ size: 4, align: 2, name: "mFadeAddr", },
 			{ size: 1, align: 1, name: "mSpeed", },
 			{ size: 1, align: 1, name: "mSpeedAcc", },
 			{ size: 1, align: 1, name: "mTempo", },
 			{ size: 1, align: 1, name: "mTempoAcc", },
-			{ size: 3, align: 1, name: "mQueue", },
-			{ size: 1, align: 1, name: "mMasterVolPSG", },
 			{ size: 4, align: 2, name: "mVctMus", },
-			{ size: 1, align: 1, name: "mMasterVolDAC", },
 			{ size: 1, align: 1, name: "mSpindash", },
 			{ size: 1, align: 1, name: "mContCtr", },
 			{ size: 1, align: 1, name: "mContLast", },
 			{ size: 1, align: 1, name: "mLastCue", },
+			{ size: 4, align: 1, name: "mQueue", },
 
 			{ size: 0,  align: 2, name: "mBackUpArea", },
 			{ size: -1, align: 2, name: "mDAC1", },
@@ -128,16 +126,17 @@
 			{ size: -1, align: 2, cyes: 0x20, name: "mBackFM3", },
 			{ size: -1, align: 2, cyes: 0x20, name: "mBackFM4", },
 			{ size: -1, align: 2, cyes: 0x20, name: "mBackFM5", },
-			{ size: -1, align: 2, cyes: 0x60, name: "mBackFM6", },
+			{ size: -1, align: 2, cyes: 0x60, name: "mBackFM6", cyes: 0x40, },
 			{ size: -1, align: 2, cyes: 0x20, name: "mBackPSG1", },
 			{ size: -1, align: 2, cyes: 0x20, name: "mBackPSG2", },
 			{ size: -1, align: 2, cyes: 0x20, name: "mBackPSG3", },
 
-			{ size: 1, align: 1, cyes: 0x20, name: "mBackTempoMain", },
-			{ size: 1, align: 1, cyes: 0x20, name: "mBackTempoSpeed", },
+			{ size: 1, align: 1, cyes: 0x20, name: "mBackSpeed", },
+			{ size: 1, align: 1, cyes: 0x20, name: "mBaclSpeedAcc", },
 			{ size: 1, align: 1, cyes: 0x20, name: "mBackTempo", },
-			{ size: 1, align: 1, cyes: 0x20, name: "mBackTempoCur", },
+			{ size: 1, align: 1, cyes: 0x20, name: "mBackTempoAcc", },
 			{ size: 4, align: 2, cyes: 0x20, name: "mBackVctMus", },
+			{ size: 1, align: 1, cyes: 0x20, name: "mBackFlags", },
 
 			{ size: 1, align: 1, cyes: 0x01, name: "msChktracker", },
 			{ size: 0, align: 2, name: "mSize", },
@@ -150,7 +149,7 @@
 			mode |= document.getElementById("mdmod").checked * 0x02;
 			mode |= document.getElementById("mdport").checked * 0x04;
 			mode |= document.getElementById("mdmenv").checked * 0x08;
-			mode |= document.getElementById("mdvenvdf").checked * 0x10;
+		//	mode |= document.getElementById("mdvenvdf").checked * 0x10;
 			mode |= document.getElementById("mdbackup").checked * 0x20;
 			mode |= document.getElementById("mdfm6").checked * 0x40;
 			mode |= document.getElementById("mdstest").checked * 0x80;
@@ -1164,6 +1163,7 @@
 		<tblcnt><a href="#part14_1">	14.1 — AMPS v1.0</a></tblcnt>
 		<tblcnt><a href="#part14_2">	14.2 — AMPS v2.0</a></tblcnt>
 		<tblcnt><a href="#part14_3">	14.3 — AMPS v2.1</a></tblcnt>
+		<tblcnt><a href="#part14_4">	14.4 — AMPS v2.2</a></tblcnt>
 	</nav>
 <div id="mainwrap">
 <main>
@@ -1199,7 +1199,6 @@
 		<li><b>FEATURE_MODULATION</b> — When enabled, <a href="#part5_1">software modulation</a> can be used. This allows he programmer to define a linear change for frequency over time, which can also go back and forth between rising and falling.</li>
 		<li><b>FEATURE_PORTAMENTO</b> — When enabled, <a href="#part5_2">the portamento command</a> can be used. Portamento makes the notes smoothly change over specified number of frames.</li>
 		<li><b>FEATURE_MODENV</b> — When enabled, <a href="#part5">modulation envelopes</a> can be used. Similarly to volume envelopes (also known as PSG instruments or PSG tones), they can be used to create more complex patterns for changing channel frequency. Every frame a value is read from a list specified by the modulation envelope ID, and that is used to calculate the frequency displacement.</li>
-		<li><b>FEATURE_DACFMVOLENV</b> — When enabled, <a href="#part6_1">volume envelopes</a> can be used in DAC and FM channels along with PSG channels. They can be used to create more complex patterns for changing channel volume. Every frame a value is read from a list specified by the volume envelope ID, which is then used to calculate the volume displacement.</li>
 		<li><b>FEATURE_UNDERWATER</b> — Allows <a href="#part6_2">underwater mode</a> to be enabled. This makes it so that the program can request underwater mode to be activated, and when it is, all FM voices will sound slightly muffled. This is intended to emulate how music would sound if it were played underwater. Although the effect is not perfect, it creates an additional "depth" to how your program will sound when implemented right.</li>
 		<li><b>FEATURE_BACKUP</b> — When enabled, music can be <a href="#part4_2">"backed up"</a> so it can be later started from the same place. This is useful if you have a temporary music you want to play for a small moment, but don't want the previous music to start from the beginning again. In Sonic games this is commonly used for the 1-UP sound. The one big downside of this flag is that it requires nearly double the amount of RAM as the driver regularly needs.</li>
 		<li><b>FEATURE_BACKUPNOSFX</b> — When enabled, this prevents sound effects from playing when a song is backed up.</li>
@@ -1452,7 +1451,7 @@
 	</p>
 	<h4 id="cmdF2"><a class="bx" href="#cmdF2">$F2 — sVolEnv &lt;env&gt;</a></h4>
 	<p>
-		Sets the channel volume envelope to <b>&lt;env&gt;</b>. Volume envelopes are used to change the volume of a channel per frame, reading from a list. This is particularly useful for PSG channels, since they do not inherently have any capability to change the volume in a meaningful way otherwise. However, if FEATURE_DACFMVOLENV is enabled, DAC and FM channels can also use this functionality. More about volume envelopes in <a href="#part6_1">part 6.1</a>. This command is skipped when condition is false.
+		Sets the channel volume envelope to <b>&lt;env&gt;</b>. Volume envelopes are used to change the volume of a channel per frame, reading from a list. This is particularly useful for PSG channels, since they do not inherently have any capability to change the volume in a meaningful way otherwise. However, DAC and FM channels can also use this functionality. More about volume envelopes in <a href="#part6_1">part 6.1</a>. This command is skipped when condition is false.
 	</p>
 	<h4 id="cmdF3"><a class="bx" href="#cmdF3">$F3 — sModEnv &lt;env&gt;</a></h4>
 	<p>
@@ -1476,7 +1475,7 @@
 	</p>
 	<ul>
 		<li><b>$00</b> — Always available.</li>
-		<li><b>$01</b> — Available for every channel except PSG3, if FEATURE_DACFMVOLENV is disabled.</li>
+		<li><b>$01</b> — Available for every channel except PSG3.</li>
 		<li><b>$02</b> — Available only for music channels.</li>
 	</ul>
 	<p>
@@ -1873,7 +1872,7 @@
 
 	<h1 id="part7" class="bd"><a class="bx" href="#part7">7 — Envelopes</a></h1>
 	<p>
-		AMPS has 2 types of envelopes: Modulation envelopes and volume envelopes. Volume envelopes can be enabled for only PSG channels, or all channels, using FEATURE_DACFMVOLENV. Modulation envelopes can be enabled or disabled using FEATURE_MODENV. These two assembly flags allow to choose which settings you will need, where them being disabled is faster and uses less RAM, but also allows for less features. The algorithm for both work very similarly, but modulation envelopes have an additional step. This will be mentioned later.
+		AMPS has 2 types of envelopes: Modulation envelopes and volume envelopes. Modulation envelopes can be enabled or disabled using FEATURE_MODENV. These two assembly flags allow to choose which settings you will need, where them being disabled is faster and uses less RAM, but also allows for less features. The algorithm for both work very similarly, but modulation envelopes have an additional step. This will be mentioned later.
 	</p>
 	<p>
 		Essentially, the algorithm simply looks for the next value in sequence every frame. There are volumes/frequencies and commands, and each envelope must end on a command. When a value is read from the envelope, if it's between $00 and $7F, or $8C to $FF, it is a volume or a frequency offset. Negative values apply a negative offset. Values read from the envelope data signify the end of the envelope processing for the frame. The next byte is read next frame, and the current byte is used to calculate output volume or frequency offset. In case of volume envelopes, it is simply added to channel volume for the current frame (result is not saved), and modulation envelopes are slightly more complex. For modulation envelopes, the modulation sensitivity is used to multiply the read value. A sensitivity of $04 with read value of $07 results in offset of $23. The sensitivity is from $01 to $100 instead of $00 to $FF. This can be set with a separate command. Below is the list of commands available:
@@ -1912,7 +1911,6 @@
 	<cbox><input type="checkbox" onclick="refRAM()" title="mdmod" id="mdmod" checked /><span>FEATURE_MODULATION</span></cbox>
 	<cbox><input type="checkbox" onclick="refRAM()" title="mdport" id="mdport" /><span>FEATURE_PORTAMENTO</span></cbox>
 	<cbox><input type="checkbox" onclick="refRAM()" title="mdmenv" id="mdmenv" /><span>FEATURE_MODENV</span></cbox>
-	<cbox><input type="checkbox" onclick="refRAM()" title="mdvenvdf" id="mdvenvdf" /><span>FEATURE_DACFMVOLENV</span></cbox>
 	<cbox><input type="checkbox" onclick="refRAM()" title="mdbackup" id="mdbackup" checked /><span>FEATURE_BACKUP</span></cbox>
 	<cbox><input type="checkbox" onclick="refRAM()" title="mdfm6" id="mdfm6" checked /><span>FEATURE_FM6</span></cbox>
 	<cbox><input type="checkbox" onclick="refRAM()" title="mdstest" id="mdstest" checked /><span>FEATURE_SOUNDTEST</span></cbox>
@@ -2232,6 +2230,19 @@
 		<li>Added a feature that allows easier integration with sound test engines.</li>
 		<li>Speed shoes tempo algorithm now works by running the sound driver twice when the timeout occurs. This also means speed shoes has its own timeout instead of using the main tempo.</li>
 		<li>AMPS Includer can list the names of all music and sfx tracks (not commands however!) now.</li>
+	</ul>
+	<h3 id="part14_4" class="bd"><a class="bx" href="#part14_4">14.3 — AMPS v2.2</a></h3>
+	<p>
+		Revision to AMPS v2.1. This version adds optimizations to the driver and changes that makes it fully compatible with Sonic 3 & Knuckles! Here is a list of changes:
+	</p>
+	<ul>
+		<li>Removed <b>FEATURE_DACFMVOLENV</b> option. It is now always enabled.</li>
+		<li><b>FEATURE_QUEUESIZE</b> can now be used to change sound queue size.</li>
+		<li>Continuous SFX feature has bee edited to fix it to the best of our ability.</li>
+		<li>DAC and PSG are slightly altered when underwater mode is enabled.</li>
+		<li>Underwater mode can be individually be toggled for music and sound effects.</li>
+		<li>Counter tempo algorithm is completely removed.</li>
+		<li>Small cycle and RAM space optimizations have been added.</li>
 	</ul>
 </main>
 </div>
